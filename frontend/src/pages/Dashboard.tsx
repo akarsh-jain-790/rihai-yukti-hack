@@ -9,9 +9,21 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Calendar, FileText, MessageSquare, PieChart } from "lucide-react";
-import { Link } from "react-router-dom";
-import DashboardLayout from "../components/layout/DashboardLayout";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../components/ui/tabs";
+import {
+  Calendar,
+  FileText,
+  MessageSquare,
+  PieChart,
+  AlertCircle,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { motion } from "framer-motion";
 
 export default function Dashboard() {
@@ -54,56 +66,119 @@ export default function Dashboard() {
     },
   ];
 
-  const recentApplications = [
-    {
-      name: "State vs. Rahul Kumar",
-      date: "2 days ago",
-      status: "Pending",
-      statusColor: "bg-yellow-500",
-    },
-    {
-      name: "State vs. Amit Singh",
-      date: "5 days ago",
-      status: "Approved",
-      statusColor: "bg-green-500",
-    },
-    {
-      name: "State vs. Priya Sharma",
-      date: "1 week ago",
-      status: "Pending",
-      statusColor: "bg-yellow-500",
-    },
-    {
-      name: "State vs. Vikram Patel",
-      date: "2 weeks ago",
-      status: "Rejected",
-      statusColor: "bg-red-500",
-    },
-  ];
+        // Calculate stats
+        const pendingCount = cases.filter(
+          (c: any) => c.status === "Pending"
+        ).length;
+        const approvedCount = cases.filter(
+          (c: any) => c.status === "Approved"
+        ).length;
+        const rejectedCount = cases.filter(
+          (c: any) => c.status === "Rejected"
+        ).length;
+        const totalCount = cases.length;
+        const successRate =
+          totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0;
 
-  const upcomingHearings = [
-    {
-      month: "MAR",
-      day: "24",
-      name: "State vs. Rahul Kumar",
-      time: "10:30 AM",
-      location: "District Court, Delhi",
-    },
-    {
-      month: "MAR",
-      day: "28",
-      name: "State vs. Priya Sharma",
-      time: "11:00 AM",
-      location: "High Court, Mumbai",
-    },
-    {
-      month: "APR",
-      day: "02",
-      name: "State vs. Sunil Verma",
-      time: "2:00 PM",
-      location: "Sessions Court, Bangalore",
-    },
-  ];
+        setStats([
+          {
+            title: "Total Applications",
+            value: totalCount.toString(),
+            change: "+2 from last month",
+            icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+          },
+          {
+            title: "Pending Applications",
+            value: pendingCount.toString(),
+            change: "-1 from last month",
+            icon: <Calendar className="h-4 w-4 text-muted-foreground" />,
+          },
+          {
+            title: "Approved Applications",
+            value: approvedCount.toString(),
+            change: "+3 from last month",
+            icon: <FileText className="h-4 w-4 text-muted-foreground" />,
+          },
+          {
+            title: "Success Rate",
+            value: `${successRate}%`,
+            change: "+5% from last month",
+            icon: <PieChart className="h-4 w-4 text-muted-foreground" />,
+          },
+        ]);
+
+        // Process hearings data
+        const hearings = hearingsResponse || [];
+
+        // Filter today's hearings
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const todaysHearings = hearings.filter((h: any) => {
+          const hearingDate = new Date(h.date);
+          return hearingDate >= today && hearingDate < tomorrow;
+        });
+
+        setTodayHearings(
+          todaysHearings.map((h: any) => ({
+            id: h._id,
+            caseNumber: h.caseId?.caseNumber || "N/A",
+            title: h.caseId?.title || "Unknown Case",
+            time: h.time,
+            court: h.location,
+            type: h.purpose,
+            complexity: h.complexity || "Standard",
+          }))
+        );
+
+        // Filter upcoming hearings
+        const upcomingHearingsList = hearings.filter((h: any) => {
+          const hearingDate = new Date(h.date);
+          return hearingDate >= tomorrow;
+        });
+
+        setUpcomingHearings(
+          upcomingHearingsList.map((h: any) => {
+            const hearingDate = new Date(h.date);
+            return {
+              id: h._id,
+              month: hearingDate
+                .toLocaleString("default", { month: "short" })
+                .toUpperCase(),
+              day: hearingDate.getDate().toString(),
+              name: h.caseId?.title || "Unknown Case",
+              time: h.time,
+              location: h.location,
+              date: h.date,
+            };
+          })
+        );
+
+        setIsLoading(false);
+      } catch (err: any) {
+        console.error("Error fetching dashboard data:", err);
+        setError(err.response?.data?.msg || "Failed to load dashboard data");
+        addToast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          type: "error",
+        });
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user, addToast]);
+
+  const handleCaseClick = (id: string) => {
+    if (user?.role === "judge") {
+      navigate(`/judge/case/${id}`);
+    } else {
+      navigate(`/case/${id}`);
+    }
+  };
 
   const quickAccessItems = [
     {
@@ -143,6 +218,19 @@ export default function Dashboard() {
     show: { opacity: 1, y: 0 },
   };
 
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[80vh]">
+          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Error Loading Dashboard</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <motion.div
@@ -157,14 +245,16 @@ export default function Dashboard() {
         >
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, John Doe</p>
+            <p className="text-muted-foreground">
+              Welcome back, {user?.firstName || "User"}
+            </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => navigate("/application")}>
               <FileText className="mr-2 h-4 w-4" />
               New Application
             </Button>
-            <Button>
+            <Button onClick={() => navigate("/risk-assessment")}>
               <PieChart className="mr-2 h-4 w-4" />
               Risk Assessment
             </Button>
@@ -210,6 +300,239 @@ export default function Dashboard() {
           ))}
         </motion.div>
 
+        {/* Tabs for Hearings */}
+        <motion.div variants={item} className="mt-6">
+          <Tabs defaultValue="today" className="w-full">
+            <TabsList>
+              <TabsTrigger value="today" className="flex items-center">
+                <Calendar className="h-4 w-4 mr-2" />
+                Today's Hearings
+              </TabsTrigger>
+              <TabsTrigger value="upcoming" className="flex items-center">
+                <Calendar className="h-4 w-4 mr-2" />
+                Upcoming Hearings
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="today" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Today's Hearings</CardTitle>
+                  <CardDescription>
+                    Hearings scheduled for today
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="space-y-4">
+                      {Array(2)
+                        .fill(0)
+                        .map((_, i) => (
+                          <div key={i} className="p-3 border rounded-md">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="h-5 w-32 bg-muted animate-pulse rounded mb-1"></div>
+                                <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
+                              </div>
+                              <div className="text-right">
+                                <div className="h-5 w-16 bg-muted animate-pulse rounded mb-1"></div>
+                                <div className="h-4 w-20 bg-muted animate-pulse rounded"></div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : todayHearings.length > 0 ? (
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-medium mb-2">Simple Cases</h3>
+                        <div className="space-y-2">
+                          {todayHearings
+                            .filter(
+                              (hearing) => hearing.complexity === "Simple"
+                            )
+                            .map((hearing) => (
+                              <div
+                                key={hearing.id}
+                                className="p-3 border rounded-md hover:bg-muted cursor-pointer transition-colors"
+                                onClick={() => handleCaseClick(hearing.id)}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium">
+                                      {hearing.title}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {hearing.caseNumber}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-medium">
+                                      {hearing.time}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {hearing.court}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="mt-2">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {hearing.type}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="font-medium mb-2">Complex Cases</h3>
+                        <div className="space-y-2">
+                          {todayHearings
+                            .filter(
+                              (hearing) => hearing.complexity === "Complex"
+                            )
+                            .map((hearing) => (
+                              <div
+                                key={hearing.id}
+                                className="p-3 border rounded-md hover:bg-muted cursor-pointer transition-colors"
+                                onClick={() => handleCaseClick(hearing.id)}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium">
+                                      {hearing.title}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {hearing.caseNumber}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-medium">
+                                      {hearing.time}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {hearing.court}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="mt-2">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    {hearing.type}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-1">
+                        No Hearings Today
+                      </h3>
+                      <p className="text-muted-foreground">
+                        You have no hearings scheduled for today.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="upcoming" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Upcoming Hearings</CardTitle>
+                  <CardDescription>
+                    Hearings scheduled for the next 7 days
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="space-y-4">
+                      {Array(3)
+                        .fill(0)
+                        .map((_, i) => (
+                          <div key={i}>
+                            <div className="h-5 w-32 bg-muted animate-pulse rounded mb-2"></div>
+                            <div className="p-3 border rounded-md">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <div className="h-5 w-32 bg-muted animate-pulse rounded mb-1"></div>
+                                  <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="h-5 w-16 bg-muted animate-pulse rounded mb-1"></div>
+                                  <div className="h-4 w-20 bg-muted animate-pulse rounded"></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : upcomingHearings.length > 0 ? (
+                    <div className="space-y-6">
+                      {/* Group hearings by date */}
+                      {Array.from(
+                        new Set(upcomingHearings.map((h) => h.date))
+                      ).map((date) => (
+                        <div key={date}>
+                          <h3 className="font-medium mb-2">
+                            {new Date(date).toLocaleDateString(undefined, {
+                              weekday: "long",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </h3>
+                          <div className="space-y-2">
+                            {upcomingHearings
+                              .filter((hearing) => hearing.date === date)
+                              .map((hearing) => (
+                                <div
+                                  key={hearing.id}
+                                  className="p-3 border rounded-md hover:bg-muted cursor-pointer transition-colors"
+                                  onClick={() => handleCaseClick(hearing.id)}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-medium">
+                                        {hearing.name}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-medium">
+                                        {hearing.time}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {hearing.location}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-1">
+                        No Upcoming Hearings
+                      </h3>
+                      <p className="text-muted-foreground">
+                        You have no hearings scheduled for the next 7 days.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </motion.div>
+
         {/* Recent Activity */}
         <motion.div
           variants={item}
@@ -239,11 +562,12 @@ export default function Dashboard() {
                       ))
                   : recentApplications.map((app, index) => (
                       <motion.div
-                        key={app.name}
+                        key={app.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.5 + index * 0.1 }}
-                        className="flex items-center gap-4"
+                        className="flex items-center gap-4 cursor-pointer hover:bg-muted p-2 rounded-md"
+                        onClick={() => handleCaseClick(app.id)}
                       >
                         <div
                           className={`w-2 h-2 rounded-full ${app.statusColor}`}
@@ -265,53 +589,8 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          {/* Quick Access */}
           <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle>Upcoming Hearings</CardTitle>
-              <CardDescription>You have 3 hearings scheduled</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {isLoading
-                  ? Array(3)
-                      .fill(0)
-                      .map((_, i) => (
-                        <div key={i} className="flex items-center gap-4">
-                          <div className="min-w-[48px] h-14 rounded-md bg-muted animate-pulse"></div>
-                          <div className="flex-1">
-                            <div className="h-5 w-32 bg-muted animate-pulse rounded mb-1"></div>
-                            <div className="h-4 w-40 bg-muted animate-pulse rounded"></div>
-                          </div>
-                        </div>
-                      ))
-                  : upcomingHearings.map((hearing, index) => (
-                      <motion.div
-                        key={hearing.name}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.5 + index * 0.1 }}
-                        className="flex items-center gap-4"
-                      >
-                        <div className="min-w-[48px] rounded-md bg-primary/10 p-2 text-center">
-                          <p className="text-xs font-medium">{hearing.month}</p>
-                          <p className="text-lg font-bold">{hearing.day}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{hearing.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {hearing.time} • {hearing.location}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Quick Access */}
-        <motion.div variants={item}>
-          <Card>
             <CardHeader>
               <CardTitle>Quick Access</CardTitle>
               <CardDescription>
@@ -319,7 +598,7 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {quickAccessItems.map((item, index) => (
                   <Link to={item.path} key={item.label}>
                     <motion.div

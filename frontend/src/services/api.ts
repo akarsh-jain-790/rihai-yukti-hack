@@ -42,7 +42,9 @@ api.interceptors.response.use(
 export const authService = {
   login: async (email: string, password: string) => {
     try {
+      console.log(email, password);
       const response = await api.post("/auth/login", { email, password })
+      console.log(response);
 
       if (response.data.token) {
         localStorage.setItem("token", response.data.token)
@@ -100,6 +102,17 @@ export const authService = {
       return response.data
     } catch (error) {
       console.error("Error fetching current user:", error)
+      throw error
+    }
+  },
+
+  // Update user profile
+  updateProfile: async (userData: any) => {
+    try {
+      const response = await api.put("/users/profile", userData)
+      return response.data
+    } catch (error) {
+      console.error("Error updating profile:", error)
       throw error
     }
   },

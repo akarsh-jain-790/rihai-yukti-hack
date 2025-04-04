@@ -18,7 +18,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "../../components/ui/tabs";
-import { Alert } from "../../components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { useToast } from "../../components/ui/toaster";
 import {
   Loader2,
@@ -29,100 +29,43 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-
-interface CaseDetails {
-  id: string;
-  caseNumber: string;
-  title: string;
-  court: string;
-  judge: string;
-  status: string;
-  filingDate: string;
-  nextHearingDate: string;
-  applicant: string;
-  respondent: string;
-  charges: string[];
-  description: string;
-  documents: { name: string; url: string; date: string }[];
-  hearings: { date: string; time: string; type: string; notes: string }[];
-  riskAssessment?: {
-    score: number;
-    level: "Low" | "Medium" | "High";
-    factors: string[];
-  };
-}
+import { caseService, riskAssessmentService } from "../../services/api";
 
 export default function JudgeCaseView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
+  const [caseDetails, setCaseDetails] = useState<any | null>(null);
+  const [riskAssessment, setRiskAssessment] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCaseDetails = async () => {
+      if (!id) {
+        setError("Case ID is missing");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        // In a real application, this would be an API call
-        // const response = await api.get(`/cases/${id}`)
-        // setCaseDetails(response.data)
 
-        // For now, we'll use mock data
-        setTimeout(() => {
-          setCaseDetails({
-            id: id || "1",
-            caseNumber: "CR-2023-1234",
-            title: "State vs. John Doe",
-            court: "District Court, Delhi",
-            judge: "Hon. Justice Sharma",
-            status: "Pending",
-            filingDate: "2023-01-15",
-            nextHearingDate: "2023-06-30",
-            applicant: "State",
-            respondent: "John Doe",
-            charges: ["Section 302 IPC", "Section 120B IPC"],
-            description:
-              "Case involving allegations of criminal conspiracy and murder.",
-            documents: [
-              { name: "Charge Sheet", url: "#", date: "2023-01-20" },
-              { name: "FIR Copy", url: "#", date: "2023-01-16" },
-              { name: "Bail Application", url: "#", date: "2023-02-05" },
-            ],
-            hearings: [
-              {
-                date: "2023-02-15",
-                time: "10:30 AM",
-                type: "First Hearing",
-                notes: "Case introduced, charges read.",
-              },
-              {
-                date: "2023-04-10",
-                time: "11:00 AM",
-                type: "Evidence Hearing",
-                notes: "Prosecution presented evidence.",
-              },
-              {
-                date: "2023-05-20",
-                time: "10:00 AM",
-                type: "Witness Testimony",
-                notes: "Witness examination conducted.",
-              },
-            ],
-            riskAssessment: {
-              score: 65,
-              level: "Medium",
-              factors: [
-                "Previous convictions",
-                "Severity of charges",
-                "Community ties",
-              ],
-            },
-          });
-          setLoading(false);
-        }, 1000);
-      } catch (err) {
-        setError("Failed to load case details. Please try again.");
+        // Fetch case details and risk assessment in parallel
+        const [caseResponse, riskResponse] = await Promise.all([
+          caseService.getCaseById(id),
+          riskAssessmentService.getRiskAssessment(id).catch(() => null), // Don't fail if risk assessment doesn't exist
+        ]);
+
+        setCaseDetails(caseResponse);
+        setRiskAssessment(riskResponse);
+        setLoading(false);
+      } catch (err: any) {
+        console.error("Error fetching case details:", err);
+        setError(
+          err.response?.data?.msg ||
+            "Failed to load case details. Please try again."
+        );
         setLoading(false);
         addToast({
           title: "Error",
@@ -135,22 +78,37 @@ export default function JudgeCaseView() {
     fetchCaseDetails();
   }, [id, addToast]);
 
-  const handleStatusUpdate = (newStatus: string) => {
-    setCaseDetails((prev) => (prev ? { ...prev, status: newStatus } : null));
-    addToast({
-      title: "Status Updated",
-      description: `Case status updated to ${newStatus}`,
-      type: "success",
-    });
+  const handleStatusUpdate = async (newStatus: string) => {
+    try {
+      setLoading(true);
+
+      // Update case status via API
+      await caseService.updateCase(id!, { status: newStatus });
+
+      // Update local state
+      setCaseDetails((prev) => (prev ? { ...prev, status: newStatus } : null));
+
+      addToast({
+        title: "Status Updated",
+        description: `Case status updated to ${newStatus}`,
+        type: "success",
+      });
+    } catch (err: any) {
+      console.error("Error updating case status:", err);
+      addToast({
+        title: "Update Failed",
+        description:
+          err.response?.data?.msg ||
+          "Failed to update case status. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleScheduleHearing = () => {
-    // In a real app, this would open a modal or navigate to a scheduling page
-    addToast({
-      title: "Feature Coming Soon",
-      description: "Hearing scheduling will be available soon",
-      type: "info",
-    });
+    navigate(`/judge/schedule-hearing/${id}`);
   };
 
   if (loading) {
@@ -238,14 +196,18 @@ export default function JudgeCaseView() {
                     Next Hearing
                   </h3>
                   <p>
-                    {new Date(caseDetails.nextHearingDate).toLocaleDateString()}
+                    {caseDetails.nextHearingDate
+                      ? new Date(
+                          caseDetails.nextHearingDate
+                        ).toLocaleDateString()
+                      : "Not scheduled"}
                   </p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
                     Applicant
                   </h3>
-                  <p>{caseDetails.applicant}</p>
+                  <p>{caseDetails.applicant?.name || caseDetails.applicant}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
@@ -260,9 +222,10 @@ export default function JudgeCaseView() {
                   Charges
                 </h3>
                 <ul className="list-disc list-inside">
-                  {caseDetails.charges.map((charge, index) => (
-                    <li key={index}>{charge}</li>
-                  ))}
+                  {caseDetails.charges &&
+                    caseDetails.charges.map((charge: string, index: number) => (
+                      <li key={index}>{charge}</li>
+                    ))}
                 </ul>
               </div>
 
@@ -298,6 +261,7 @@ export default function JudgeCaseView() {
                   size="sm"
                   onClick={() => handleStatusUpdate("Approved")}
                   className="text-green-600 border-green-200 hover:bg-green-50"
+                  disabled={caseDetails.status === "Approved"}
                 >
                   <CheckCircle className="h-4 w-4 mr-1" />
                   Approve
@@ -307,6 +271,7 @@ export default function JudgeCaseView() {
                   size="sm"
                   onClick={() => handleStatusUpdate("Rejected")}
                   className="text-red-600 border-red-200 hover:bg-red-50"
+                  disabled={caseDetails.status === "Rejected"}
                 >
                   <XCircle className="h-4 w-4 mr-1" />
                   Reject
@@ -321,24 +286,24 @@ export default function JudgeCaseView() {
               <CardDescription>Bail risk evaluation</CardDescription>
             </CardHeader>
             <CardContent>
-              {caseDetails.riskAssessment ? (
+              {riskAssessment ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Risk Score</span>
                     <span className="font-bold">
-                      {caseDetails.riskAssessment.score}/100
+                      {riskAssessment.score}/100
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div
                       className={`h-2.5 rounded-full ${
-                        caseDetails.riskAssessment.level === "Low"
+                        riskAssessment.level === "Low"
                           ? "bg-green-500"
-                          : caseDetails.riskAssessment.level === "Medium"
+                          : riskAssessment.level === "Medium"
                           ? "bg-yellow-500"
                           : "bg-red-500"
                       }`}
-                      style={{ width: `${caseDetails.riskAssessment.score}%` }}
+                      style={{ width: `${riskAssessment.score}%` }}
                     ></div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -349,8 +314,8 @@ export default function JudgeCaseView() {
                   <div className="pt-4">
                     <h3 className="font-medium text-sm mb-2">Risk Factors</h3>
                     <ul className="space-y-1">
-                      {caseDetails.riskAssessment.factors.map(
-                        (factor, index) => (
+                      {riskAssessment.factors.map(
+                        (factor: string, index: number) => (
                           <li key={index} className="text-sm flex items-start">
                             <span className="mr-2">•</span>
                             <span>{factor}</span>
@@ -365,6 +330,14 @@ export default function JudgeCaseView() {
                   <p className="text-muted-foreground">
                     No risk assessment available
                   </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate(`/risk-assessment/${id}`)}
+                  >
+                    Perform Risk Assessment
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -396,23 +369,33 @@ export default function JudgeCaseView() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {caseDetails.hearings.map((hearing, index) => (
-                    <div key={index} className="border-b pb-4 last:border-0">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{hearing.type}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(hearing.date).toLocaleDateString()} at{" "}
-                            {hearing.time}
-                          </p>
+                  {caseDetails.hearings && caseDetails.hearings.length > 0 ? (
+                    caseDetails.hearings.map((hearing: any, index: number) => (
+                      <div key={index} className="border-b pb-4 last:border-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium">
+                              {hearing.type || hearing.purpose}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(hearing.date).toLocaleDateString()} at{" "}
+                              {hearing.time}
+                            </p>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            View Details
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="sm">
-                          View Details
-                        </Button>
+                        <p className="text-sm mt-2">{hearing.notes}</p>
                       </div>
-                      <p className="text-sm mt-2">{hearing.notes}</p>
+                    ))
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">
+                        No hearings scheduled for this case yet.
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
               <CardFooter>
@@ -436,31 +419,39 @@ export default function JudgeCaseView() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {caseDetails.documents.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-2 hover:bg-muted rounded-md"
-                    >
-                      <div className="flex items-center">
-                        <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Added on {new Date(doc.date).toLocaleDateString()}
-                          </p>
+                  {caseDetails.documents && caseDetails.documents.length > 0 ? (
+                    caseDetails.documents.map((doc: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center p-2 hover:bg-muted rounded-md"
+                      >
+                        <div className="flex items-center">
+                          <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{doc.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Added on {new Date(doc.date).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View
+                          </a>
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="sm" asChild>
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View
-                        </a>
-                      </Button>
+                    ))
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">
+                        No documents available for this case.
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
               <CardFooter>
@@ -483,21 +474,50 @@ export default function JudgeCaseView() {
                   <div>
                     <h3 className="font-medium mb-2">Applicant</h3>
                     <div className="p-3 border rounded-md">
-                      <p className="font-medium">{caseDetails.applicant}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Represented by: Adv. Rajesh Kumar
+                      <p className="font-medium">
+                        {caseDetails.applicant?.name || caseDetails.applicant}
                       </p>
+                      {caseDetails.applicant?.address && (
+                        <p className="text-sm text-muted-foreground">
+                          Address: {caseDetails.applicant.address}
+                        </p>
+                      )}
+                      {caseDetails.applicant?.phone && (
+                        <p className="text-sm text-muted-foreground">
+                          Phone: {caseDetails.applicant.phone}
+                        </p>
+                      )}
+                      {caseDetails.applicant?.email && (
+                        <p className="text-sm text-muted-foreground">
+                          Email: {caseDetails.applicant.email}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium mb-2">Respondent</h3>
-                    <div className="p-3 border rounded-md">
-                      <p className="font-medium">{caseDetails.respondent}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Represented by: Adv. Priya Singh
-                      </p>
+                  {caseDetails.lawyer && (
+                    <div>
+                      <h3 className="font-medium mb-2">Lawyer</h3>
+                      <div className="p-3 border rounded-md">
+                        <p className="font-medium">{caseDetails.lawyer.name}</p>
+                        {caseDetails.lawyer.barCouncilNumber && (
+                          <p className="text-sm text-muted-foreground">
+                            Bar Council Number:{" "}
+                            {caseDetails.lawyer.barCouncilNumber}
+                          </p>
+                        )}
+                        {caseDetails.lawyer.phone && (
+                          <p className="text-sm text-muted-foreground">
+                            Phone: {caseDetails.lawyer.phone}
+                          </p>
+                        )}
+                        {caseDetails.lawyer.email && (
+                          <p className="text-sm text-muted-foreground">
+                            Email: {caseDetails.lawyer.email}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

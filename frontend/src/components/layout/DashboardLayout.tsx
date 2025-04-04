@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { Link, useLocation } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   Bell,
   Calendar,
@@ -19,61 +19,102 @@ import {
   X,
   ChevronRight,
   ChevronLeft,
-} from "lucide-react"
-import { Button } from "../ui/button"
-import { ThemeToggle } from "../theme-toggle"
-import { motion, AnimatePresence } from "framer-motion"
+} from "lucide-react";
+import { Button } from "../ui/button";
+import { ThemeToggle } from "../theme-toggle";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface DashboardLayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-  const location = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const location = useLocation();
 
   // Check if screen is mobile
   useEffect(() => {
     const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
+      setIsMobile(window.innerWidth < 1024);
       if (window.innerWidth < 1024) {
-        setSidebarCollapsed(true)
+        setSidebarCollapsed(true);
       }
-    }
+    };
 
-    checkIfMobile()
-    window.addEventListener("resize", checkIfMobile)
+    checkIfMobile();
+    window.addEventListener("resize", checkIfMobile);
 
     return () => {
-      window.removeEventListener("resize", checkIfMobile)
-    }
-  }, [])
+      window.removeEventListener("resize", checkIfMobile);
+    };
+  }, []);
 
   const isActive = (path: string) => {
-    return location.pathname === path
-  }
+    return location.pathname === path;
+  };
 
   const navItems = [
-    { path: "/dashboard", icon: <Home className="h-4 w-4" />, label: "Dashboard" },
-    { path: "/calculator", icon: <FileText className="h-4 w-4" />, label: "Bail Calculator" },
-    { path: "/risk-assessment", icon: <PieChart className="h-4 w-4" />, label: "Risk Assessment" },
-    { path: "/application", icon: <FileText className="h-4 w-4" />, label: "Application Generator" },
-    { path: "/case-diary", icon: <FileText className="h-4 w-4" />, label: "Case Diary" },
-    { path: "/tracking", icon: <Calendar className="h-4 w-4" />, label: "Status Tracking" },
-    { path: "/database", icon: <BarChart className="h-4 w-4" />, label: "Legal Database" },
-    { path: "/analytics", icon: <BarChart className="h-4 w-4" />, label: "Predictive Analytics" },
-    { path: "/chatbot", icon: <MessageSquare className="h-4 w-4" />, label: "BNS Chatbot" },
-    { path: "/feedback", icon: <MessageSquare className="h-4 w-4" />, label: "Feedback" },
-  ]
+    {
+      path: "/dashboard",
+      icon: <Home className="h-4 w-4" />,
+      label: "Dashboard",
+    },
+    {
+      path: "/calculator",
+      icon: <FileText className="h-4 w-4" />,
+      label: "Bail Calculator",
+    },
+    {
+      path: "/risk-assessment",
+      icon: <PieChart className="h-4 w-4" />,
+      label: "Risk Assessment",
+    },
+    {
+      path: "/application",
+      icon: <FileText className="h-4 w-4" />,
+      label: "Application Generator",
+    },
+    {
+      path: "/case-diary",
+      icon: <FileText className="h-4 w-4" />,
+      label: "Case Diary",
+    },
+    {
+      path: "/tracking",
+      icon: <Calendar className="h-4 w-4" />,
+      label: "Status Tracking",
+    },
+    {
+      path: "/database",
+      icon: <BarChart className="h-4 w-4" />,
+      label: "Legal Database",
+    },
+    {
+      path: "/analytics",
+      icon: <BarChart className="h-4 w-4" />,
+      label: "Predictive Analytics",
+    },
+    {
+      path: "/chatbot",
+      icon: <MessageSquare className="h-4 w-4" />,
+      label: "BNS Chatbot",
+    },
+    {
+      path: "/feedback",
+      icon: <MessageSquare className="h-4 w-4" />,
+      label: "Feedback",
+    },
+  ];
 
   // Notifications data
   const notifications = [
     {
       id: 1,
       title: "Hearing Reminder",
-      message: "Upcoming hearing for State vs. Rahul Kumar tomorrow at 10:30 AM",
+      message:
+        "Upcoming hearing for State vs. Rahul Kumar tomorrow at 10:30 AM",
       time: "5 min ago",
     },
     {
@@ -88,7 +129,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       message: "Predictive Analytics module has been updated with new features",
       time: "1 day ago",
     },
-  ]
+  ];
 
   // User data
   const userData = {
@@ -97,7 +138,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     avatar: null,
     barCouncilNumber: "MAH/12345/2020",
     email: "john.doe@example.com",
-  }
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -153,7 +194,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <div className="flex items-center gap-2">
             {isMobile && (
-              <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
+                onClick={() => setSidebarOpen(false)}
+              >
                 <X className="h-4 w-4" />
               </Button>
             )}
@@ -164,7 +210,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 className="hidden lg:flex"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               >
-                {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                {sidebarCollapsed ? (
+                  <ChevronRight className="h-4 w-4" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
               </Button>
             )}
           </div>
@@ -176,7 +226,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               key={item.path}
               to={item.path}
               className={`flex items-center gap-3 px-3 py-2 text-sm rounded-md font-medium transition-colors ${
-                isActive(item.path) ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"
+                isActive(item.path)
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted text-muted-foreground"
               }`}
               onClick={() => isMobile && setSidebarOpen(false)}
             >
@@ -201,7 +253,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <Link
             to="/settings"
             className={`flex items-center gap-3 px-3 py-2 text-sm rounded-md font-medium transition-colors ${
-              isActive("/settings") ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground"
+              isActive("/settings")
+                ? "bg-primary/10 text-primary"
+                : "hover:bg-muted text-muted-foreground"
             }`}
             onClick={() => isMobile && setSidebarOpen(false)}
           >
@@ -234,7 +288,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     transition={{ duration: 0.2 }}
                   >
                     <p className="text-sm font-medium">{userData.name}</p>
-                    <p className="text-xs text-muted-foreground">{userData.role}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {userData.role}
+                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -260,7 +316,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Header */}
         <header className="border-b bg-card sticky top-0 z-30">
           <div className="flex h-16 items-center px-4 gap-4">
-            <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
               <Menu className="h-4 w-4" />
               <span className="sr-only">Toggle menu</span>
             </Button>
@@ -303,7 +364,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   </div>
                   <div className="hidden md:block">
                     <p className="text-sm font-medium">{userData.name}</p>
-                    <p className="text-xs text-muted-foreground">{userData.role}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {userData.role}
+                    </p>
                   </div>
                 </div>
               </motion.div>
@@ -315,6 +378,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
       </div>
     </div>
-  )
+  );
 }
 
+export { DashboardLayout };

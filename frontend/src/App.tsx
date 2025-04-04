@@ -6,25 +6,26 @@ import {
 } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
 import { AuthProvider } from "./context/AuthContext";
-import { Toaster, ToastProvider } from "./components/ui/toaster";
+import { ToastProvider } from "./components/ui/toaster";
+import PrivateRoute from "./components/PrivateRoute";
+import RoleRoute from "./components/RoleRoute";
+
+// Pages
 import LandingPage from "./pages/LandingPage";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import BailCalculator from "./pages/BailCalculator";
 import RiskAssessment from "./pages/RiskAssessment";
-import ApplicationGenerator from "./pages/ApplicationGenerator";
 import CaseDiary from "./pages/CaseDiary";
 import StatusTracking from "./pages/StatusTracking";
-import LegalDatabase from "./pages/LegalDatabase";
 import PredictiveAnalytics from "./pages/PredictiveAnalytics";
 import Chatbot from "./pages/Chatbot";
+import ApplicationGenerator from "./pages/ApplicationGenerator";
 import Feedback from "./pages/Feedback";
 import Settings from "./pages/Settings";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import JudgeCalendar from "./pages/judge/JudgeCalendar";
 import JudgeCaseView from "./pages/judge/JudgeCaseView";
-import PrivateRoute from "./components/PrivateRoute";
-import RoleRoute from "./components/RoleRoute";
 
 function App() {
   return (
@@ -33,12 +34,12 @@ function App() {
         <ToastProvider>
           <Router>
             <Routes>
-              {/* Public routes */}
+              {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
 
-              {/* Private routes for all authenticated users */}
+              {/* Private Routes */}
               <Route
                 path="/dashboard"
                 element={
@@ -47,7 +48,78 @@ function App() {
                   // </PrivateRoute>
                 }
               />
-
+              <Route
+                path="/calculator"
+                element={
+                  <PrivateRoute>
+                    <BailCalculator />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/risk-assessment"
+                element={
+                  <PrivateRoute>
+                    <RiskAssessment />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/case-diary"
+                element={
+                  <PrivateRoute>
+                    <CaseDiary />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/case/:id"
+                element={
+                  <PrivateRoute>
+                    <CaseDiary />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/status-tracking"
+                element={
+                  <PrivateRoute>
+                    <StatusTracking />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/predictive-analytics"
+                element={
+                  <PrivateRoute>
+                    <PredictiveAnalytics />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/chatbot"
+                element={
+                  <PrivateRoute>
+                    <Chatbot />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/application"
+                element={
+                  <PrivateRoute>
+                    <ApplicationGenerator />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/feedback"
+                element={
+                  <PrivateRoute>
+                    <Feedback />
+                  </PrivateRoute>
+                }
+              />
               <Route
                 path="/settings"
                 element={
@@ -57,112 +129,28 @@ function App() {
                 }
               />
 
-              <Route
-                path="/feedback"
-                element={
-                  <PrivateRoute>
-                    <Feedback />
-                  </PrivateRoute>
-                }
-              />
-
-              {/* Routes for lawyers and users */}
-              <Route
-                path="/calculator"
-                element={
-                  <RoleRoute roles={["lawyer", "user"]}>
-                    <BailCalculator />
-                  </RoleRoute>
-                }
-              />
-
-              <Route
-                path="/risk-assessment"
-                element={
-                  <RoleRoute roles={["lawyer", "user"]}>
-                    <RiskAssessment />
-                  </RoleRoute>
-                }
-              />
-
-              <Route
-                path="/application"
-                element={
-                  <RoleRoute roles={["lawyer"]}>
-                    <ApplicationGenerator />
-                  </RoleRoute>
-                }
-              />
-
-              <Route
-                path="/case-diary"
-                element={
-                  <RoleRoute roles={["lawyer", "user"]}>
-                    <CaseDiary />
-                  </RoleRoute>
-                }
-              />
-
-              <Route
-                path="/tracking"
-                element={
-                  <RoleRoute roles={["lawyer", "user"]}>
-                    <StatusTracking />
-                  </RoleRoute>
-                }
-              />
-
-              <Route
-                path="/database"
-                element={
-                  <RoleRoute roles={["lawyer", "user", "judge"]}>
-                    <LegalDatabase />
-                  </RoleRoute>
-                }
-              />
-
-              <Route
-                path="/analytics"
-                element={
-                  <RoleRoute roles={["lawyer", "judge"]}>
-                    <PredictiveAnalytics />
-                  </RoleRoute>
-                }
-              />
-
-              <Route
-                path="/chatbot"
-                element={
-                  <RoleRoute roles={["lawyer", "user"]}>
-                    <Chatbot />
-                  </RoleRoute>
-                }
-              />
-
-              {/* Judge specific routes */}
+              {/* Judge-specific Routes */}
               <Route
                 path="/judge/calendar"
                 element={
-                  <RoleRoute roles={["judge"]}>
-                    <JudgeCalendar />
-                  </RoleRoute>
+                  // <RoleRoute roles={["judge"]}>
+                  <JudgeCalendar />
+                  // </RoleRoute>
                 }
               />
-
               <Route
                 path="/judge/case/:id"
                 element={
-                  <RoleRoute roles={["judge"]}>
-                    <JudgeCaseView />
-                  </RoleRoute>
+                  // <RoleRoute roles={["judge"]}>
+                  <JudgeCaseView />
+                  // </RoleRoute>
                 }
               />
 
-              {/* Fallback route */}
+              {/* Fallback Route */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Router>
-          <Toaster />
         </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
