@@ -23,6 +23,7 @@ import {
 import { Button } from "../ui/button";
 import { ThemeToggle } from "../theme-toggle";
 import { motion, AnimatePresence } from "framer-motion";
+import { authService } from "../../services/api.ts";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -132,12 +133,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   ];
 
   // User data
-  const userData = {
-    name: "John Doe",
-    role: "Advocate",
-    avatar: null,
-    barCouncilNumber: "MAH/12345/2020",
-    email: "john.doe@example.com",
+  const userData = async () => {
+    try {
+      const response = await authService.getCurrentUser();
+      return response.data;
+    } catch (error) {
+      throw new Error(`Error fetching user data: ${error}`);
+    }
   };
 
   return (

@@ -104,10 +104,7 @@ router.post("/register", async (req, res) => {
 // @access  Public
 router.post("/login", async (req, res) => {
   try {
-    console.log(user);
-
     const { email, password } = req.body;
-    console.log(user);
 
     // Check if user exists
     const user = await User.findOne({ email });

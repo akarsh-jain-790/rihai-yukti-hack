@@ -30,8 +30,10 @@ import JudgeCaseView from "./pages/judge/JudgeCaseView";
 function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="rihai-yukti-theme">
-      <AuthProvider>
-        <ToastProvider>
+      <ToastProvider>
+        <AuthProvider>
+          {" "}
+          {/* Wrap the application with AuthProvider */}
           <Router>
             <Routes>
               {/* Public Routes */}
@@ -151,8 +153,8 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Router>
-        </ToastProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

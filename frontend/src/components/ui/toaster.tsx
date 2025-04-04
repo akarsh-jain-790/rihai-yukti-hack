@@ -1,61 +1,55 @@
-"use client";
+"use client"
 
-import React from "react";
+import * as React from "react"
 
 interface ToastProps {
-  id: string;
-  title?: string;
-  description?: string;
-  action?: React.ReactNode;
-  type?: "default" | "success" | "error" | "warning";
+  id: string
+  title?: string
+  description?: string
+  action?: React.ReactNode
+  type?: "default" | "success" | "error" | "warning"
 }
 
 interface ToastContextType {
-  toasts: ToastProps[];
-  addToast: (toast: Omit<ToastProps, "id">) => void;
-  removeToast: (id: string) => void;
+  toasts: ToastProps[]
+  addToast: (toast: Omit<ToastProps, "id">) => void
+  removeToast: (id: string) => void
 }
 
-const ToastContext = React.createContext<ToastContextType | undefined>(
-  undefined
-);
+const ToastContext = React.createContext<ToastContextType | undefined>(undefined)
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToasts] = React.useState<ToastProps[]>([]);
+  const [toasts, setToasts] = React.useState<ToastProps[]>([])
 
   const addToast = React.useCallback((toast: Omit<ToastProps, "id">) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, ...toast }]);
+    const id = Math.random().toString(36).substring(2, 9)
+    setToasts((prev) => [...prev, { id, ...toast }])
 
     // Auto-dismiss after 5 seconds
     setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 5000);
-  }, []);
+      setToasts((prev) => prev.filter((t) => t.id !== id))
+    }, 5000)
+  }, [])
 
   const removeToast = React.useCallback((id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  }, []);
+    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+  }, [])
 
-  return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
-      {children}
-    </ToastContext.Provider>
-  );
+  return <ToastContext.Provider value={{ toasts, addToast, removeToast }}>{children}</ToastContext.Provider>
 }
 
 export function useToast() {
-  const context = React.useContext(ToastContext);
+  const context = React.useContext(ToastContext)
   if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
+    throw new Error("useToast must be used within a ToastProvider")
   }
-  return context;
+  return context
 }
 
 export function Toaster() {
-  const { toasts, removeToast } = useToast();
+  const { toasts, removeToast } = useToast()
 
-  if (!toasts.length) return null;
+  if (!toasts.length) return null
 
   return (
     <div className="fixed bottom-0 right-0 z-50 p-4 space-y-4 w-full max-w-sm">
@@ -66,23 +60,17 @@ export function Toaster() {
             toast.type === "success"
               ? "border-green-500"
               : toast.type === "error"
-              ? "border-red-500"
-              : toast.type === "warning"
-              ? "border-yellow-500"
-              : "border-primary"
+                ? "border-red-500"
+                : toast.type === "warning"
+                  ? "border-yellow-500"
+                  : "border-primary"
           } animate-enter`}
         >
           <div className="flex justify-between items-start">
             <div>
-              {toast.title && (
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                  {toast.title}
-                </h3>
-              )}
+              {toast.title && <h3 className="font-medium text-gray-900 dark:text-gray-100">{toast.title}</h3>}
               {toast.description && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {toast.description}
-                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{toast.description}</p>
               )}
             </div>
             <button
@@ -109,5 +97,6 @@ export function Toaster() {
         </div>
       ))}
     </div>
-  );
+  )
 }
+
