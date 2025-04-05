@@ -31,6 +31,10 @@ interface Message {
   sender: "user" | "bot";
   timestamp: Date;
 }
+import axios from "axios";
+
+const API_KEY = import.meta.env.VITE_API_KEY as string;
+const API_URL = import.meta.env.VITE_API_URL as string;
 
 export default function Chatbot() {
   const [messages, setMessages] = useState<Message[]>([
