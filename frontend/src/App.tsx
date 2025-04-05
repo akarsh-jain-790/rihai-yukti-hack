@@ -26,6 +26,9 @@ import Feedback from "./pages/Feedback";
 import Settings from "./pages/Settings";
 import JudgeCalendar from "./pages/judge/JudgeCalendar";
 import JudgeCaseView from "./pages/judge/JudgeCaseView";
+import LegalDatabase from "./pages/LegalDatabase";
+import JudgeDashboard from "./pages/judge/JudgeDashboard";
+import JudgeApplicationView from "./pages/judge/JudgeApplicationView";
 
 function App() {
   return (
@@ -145,6 +148,33 @@ function App() {
                 element={
                   // <RoleRoute roles={["judge"]}>
                   <JudgeCaseView />
+                  // </RoleRoute>
+                }
+              />
+
+              <Route
+                path="/judge-dashboard"
+                element={
+                  // <RoleRoute roles={["judge"]}>
+                  <JudgeDashboard />
+                  // </RoleRoute>
+                }
+              />
+
+              <Route
+                path="/judge-application-view/:id"
+                element={
+                  // <RoleRoute roles={["judge"]}>
+                  <JudgeApplicationView />
+                  // </RoleRoute>
+                }
+              />
+
+              <Route
+                path="/legal-database"
+                element={
+                  // <RoleRoute roles={["judge"]}>
+                  <LegalDatabase />
                   // </RoleRoute>
                 }
               />

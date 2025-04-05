@@ -83,17 +83,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       label: "Case Diary",
     },
     {
-      path: "/tracking",
+      path: "/status-tracking",
       icon: <Calendar className="h-4 w-4" />,
       label: "Status Tracking",
     },
     {
-      path: "/database",
+      path: "/legal-database",
       icon: <BarChart className="h-4 w-4" />,
       label: "Legal Database",
     },
     {
-      path: "/analytics",
+      path: "/predictive-analytics",
       icon: <BarChart className="h-4 w-4" />,
       label: "Predictive Analytics",
     },

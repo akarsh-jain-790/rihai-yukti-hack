@@ -32,6 +32,7 @@ interface Message {
   timestamp: Date;
 }
 import axios from "axios";
+const aiPrompt = `You are a legal expert and assistant trained extensively on the Bharatiya Nyaya Sanhita (BNS), 2023. Your role is to help users understand legal provisions, sections, definitions, and procedures as per the BNS. Answer user queries in a simple, accurate, and helpful manner. When appropriate, mention relevant sections, provide examples, and avoid legal jargon. Do not provide legal advice, but instead focus on explaining the law as it is written in the BNS.`;
 
 const API_KEY = import.meta.env.VITE_API_KEY as string;
 const API_URL = import.meta.env.VITE_API_URL as string;
