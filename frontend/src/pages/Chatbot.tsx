@@ -54,7 +54,7 @@ export default function Chatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
     // Add user message
@@ -68,46 +68,55 @@ export default function Chatbot() {
     setInputValue("");
     setIsLoading(true);
 
-    // Simulate bot response after a delay
-    setTimeout(() => {
-      const botResponses: Record<string, string> = {
-        "bail eligibility":
-          "Under Section 436A of CrPC, an undertrial prisoner is eligible for bail after serving half of the maximum sentence, except for offenses punishable with death or life imprisonment, or if there are multiple pending cases. Under BNSS provisions, this has been reduced to one-third of the maximum sentence.",
-        "bail application":
-          "A bail application should include details of the accused, case information, grounds for bail, previous bail history, and undertakings. The application should be filed in the court with appropriate jurisdiction.",
-        "bail conditions":
-          "Common bail conditions include regular attendance at the police station, surrender of passport, restrictions on travel, and providing surety. The court may impose additional conditions based on the nature of the offense and flight risk.",
-        "bail bond":
-          "A bail bond is a written promise signed by the accused and surety to ensure that the accused will appear in court when required. The amount of the bond is determined by the court based on various factors.",
-        "anticipatory bail":
-          "Anticipatory bail is granted under Section 438 of CrPC. It allows a person to seek bail in anticipation of arrest on accusation of having committed a non-bailable offense.",
-        "regular bail":
-          "Regular bail is granted to a person who is already in custody. It can be applied for under Section 437 and 439 of CrPC depending on the court's jurisdiction.",
-        default:
-          "I don't have specific information about that. Would you like to know about bail eligibility, bail application process, bail conditions, bail bonds, anticipatory bail, or regular bail?",
-      };
-
-      // Generate bot response based on user query
-      let botResponse = botResponses.default;
-      const userQuery = userMessage.content.toLowerCase();
-
-      for (const [keyword, response] of Object.entries(botResponses)) {
-        if (userQuery.includes(keyword)) {
-          botResponse = response;
-          break;
+    try {
+      const response = await axios.post(
+        `${API_URL}?key=${API_KEY}`,
+        {
+          contents: [
+            {
+              parts: [
+                {
+                  text: `${aiPrompt}\n\nUser query: ${inputValue}`,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
-      }
+      );
 
-      const newBotMessage: Message = {
+      const aiResponse = response.data.candidates[0].content.parts[0].text;
+
+      const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: botResponse,
+        content: aiResponse,
         sender: "bot",
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, newBotMessage]);
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error("Error fetching response from API:", error);
+      const errorMessage =
+        error instanceof AxiosError
+          ? error.response?.data?.error || error.message
+          : "An unexpected error occurred";
+
+      const errorBotMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: `I apologize, there was an error processing your request: ${errorMessage}. Please try again later.`,
+        sender: "bot",
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, errorBotMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

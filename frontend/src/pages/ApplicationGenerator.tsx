@@ -62,7 +62,7 @@ export default function ApplicationGenerator() {
     // Personal Details
     fullName: "",
     age: "",
-    gender: "",
+    gender: "Male",
     occupation: "",
     address: "",
     phone: "",
@@ -71,17 +71,17 @@ export default function ApplicationGenerator() {
     // Case Details
     firNumber: "",
     policeStation: "",
-    court: "",
+    court: "High Court",
     arrestDate: "",
     sections: "",
     allegations: "",
-    custodyStatus: "",
+    custodyStatus: "police",
     custodyPeriod: "",
 
     // Grounds for Bail
     bailGrounds: "",
-    previousBail: "",
-    bailConditions: "",
+    previousBail: "one",
+    bailConditions: "standard conditions",
     customConditions: "",
   });
 
