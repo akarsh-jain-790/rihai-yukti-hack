@@ -19,6 +19,7 @@ import { Scale, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ui/toaster";
 import { Alert, AlertDescription } from "../components/ui/alert";
+import { authService } from "../services/api"
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -43,12 +44,23 @@ export default function Login() {
     try {
       setIsSubmitting(true);
       await login(email, password);
+
+      // Fetch the user's role
+      const user = await authService.fetchCurrentUser();
+      const userRole = user?.role; // Assuming the user object contains a 'role' field
+
+      // Navigate to the appropriate dashboard based on the role
+      if (userRole === "judge") {
+        navigate("/judge-dashboard");
+      } else {
+        navigate("/dashboard"); // Default dashboard for other roles
+      }
+
       addToast({
         title: "Success",
         description: "You have successfully logged in",
         type: "success",
       });
-      navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
       setError(

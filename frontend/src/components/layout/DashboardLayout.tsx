@@ -33,6 +33,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [userRole, setUserRole] = useState<string>("");
   const location = useLocation();
 
   // Check if screen is mobile
@@ -50,6 +51,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return () => {
       window.removeEventListener("resize", checkIfMobile);
     };
+  }, []);
+
+  useEffect(() => {
+    const userString = localStorage.getItem("user");
+    if (userString) {
+      try {
+        const user = JSON.parse(userString);
+        setUserRole(user.role || "");
+      } catch (error) {
+        console.error("Error parsing user data from localStorage:", error);
+        setUserRole("");
+      }
+    }
   }, []);
 
   const isActive = (path: string) => {
@@ -72,11 +86,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       icon: <PieChart className="h-4 w-4" />,
       label: "Risk Assessment",
     },
-    {
+    // Application Generator - only visible for lawyers
+    ...(userRole === "lawyer" ? [{
       path: "/application",
       icon: <FileText className="h-4 w-4" />,
       label: "Application Generator",
-    },
+    }] : []),
     {
       path: "/case-diary",
       icon: <FileText className="h-4 w-4" />,
