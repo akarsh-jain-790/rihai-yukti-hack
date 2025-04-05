@@ -45,6 +45,7 @@ router.get("/:id", auth, async (req, res) => {
   try {
     const caseItem = await Case.findById(req.params.id)
       .populate("applicant", "firstName lastName email phone address")
+      .populate("defendant", "firstName lastName email phone address")
       .populate("lawyer", "firstName lastName barCouncilNumber email phone")
       .populate("judge", "firstName lastName courtId")
       .populate("riskAssessment")

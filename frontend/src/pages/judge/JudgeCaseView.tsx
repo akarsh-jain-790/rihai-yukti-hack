@@ -29,27 +29,48 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import { caseService } from "../../services/api";
 
+// Update the interface to match the actual API response
 interface CaseDetails {
-  id: string;
+  _id: string;
   caseNumber: string;
-  title: string;
+  applicant: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
+  lawyer: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    barCouncilNumber: string;
+  };
+  judge: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    courtId: string;
+  };
+  defendant: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
   court: string;
-  judge: string;
   status: string;
   filingDate: string;
-  nextHearingDate: string;
-  applicant: string;
-  respondent: string;
-  charges: string[];
-  description: string;
-  documents: { name: string; url: string; date: string }[];
-  hearings: { date: string; time: string; type: string; notes: string }[];
-  riskAssessment?: {
-    score: number;
-    level: "Low" | "Medium" | "High";
-    factors: string[];
-  };
+  allegations: string;
+  sections: string[];
+  custodyStatus: string;
+  custodyPeriod: number;
+  // ...other fields
 }
 
 export default function JudgeCaseView() {
@@ -64,64 +85,24 @@ export default function JudgeCaseView() {
     const fetchCaseDetails = async () => {
       try {
         setLoading(true);
-        // In a real application, this would be an API call
-        // const response = await api.get(`/cases/${id}`)
-        // setCaseDetails(response.data)
+        const data = await caseService.getCaseById(id!);
+        console.log("API Response:", data);
+        
+        // Transform API data to match your component's needs
+        const transformedData: CaseDetails = {
+          ...data,
+          title: `Case ${data.caseNumber}`, // Create a title from case number
+          charges: data.charges || [],
+          documents: data.documents || [],
+          hearings: data.hearings || [],
+          applicant: data.applicant || { name: 'N/A' },
+          description: data.description || 'No description available',
+        };
 
-        // For now, we'll use mock data
-        setTimeout(() => {
-          setCaseDetails({
-            id: id || "1",
-            caseNumber: "CR-2023-1234",
-            title: "State vs. John Doe",
-            court: "District Court, Delhi",
-            judge: "Hon. Justice Sharma",
-            status: "Pending",
-            filingDate: "2023-01-15",
-            nextHearingDate: "2023-06-30",
-            applicant: "State",
-            respondent: "John Doe",
-            charges: ["Section 302 IPC", "Section 120B IPC"],
-            description:
-              "Case involving allegations of criminal conspiracy and murder.",
-            documents: [
-              { name: "Charge Sheet", url: "#", date: "2023-01-20" },
-              { name: "FIR Copy", url: "#", date: "2023-01-16" },
-              { name: "Bail Application", url: "#", date: "2023-02-05" },
-            ],
-            hearings: [
-              {
-                date: "2023-02-15",
-                time: "10:30 AM",
-                type: "First Hearing",
-                notes: "Case introduced, charges read.",
-              },
-              {
-                date: "2023-04-10",
-                time: "11:00 AM",
-                type: "Evidence Hearing",
-                notes: "Prosecution presented evidence.",
-              },
-              {
-                date: "2023-05-20",
-                time: "10:00 AM",
-                type: "Witness Testimony",
-                notes: "Witness examination conducted.",
-              },
-            ],
-            riskAssessment: {
-              score: 65,
-              level: "Medium",
-              factors: [
-                "Previous convictions",
-                "Severity of charges",
-                "Community ties",
-              ],
-            },
-          });
-          setLoading(false);
-        }, 1000);
+        setCaseDetails(transformedData);
+        setLoading(false);
       } catch (err) {
+        console.error("Error details:", err);
         setError("Failed to load case details. Please try again.");
         setLoading(false);
         addToast({
@@ -132,7 +113,9 @@ export default function JudgeCaseView() {
       }
     };
 
-    fetchCaseDetails();
+    if (id) {
+      fetchCaseDetails();
+    }
   }, [id, addToast]);
 
   const handleStatusUpdate = (newStatus: string) => {
@@ -156,9 +139,10 @@ export default function JudgeCaseView() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[80vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center min-h-[80vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
           <span className="ml-2 text-lg">Loading case details...</span>
+          <span className="text-sm text-muted-foreground">Case ID: {id}</span>
         </div>
       </DashboardLayout>
     );
@@ -171,8 +155,13 @@ export default function JudgeCaseView() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            {error || "Case details not found"}
+            {error || `Case details not found for ID: ${id}`}
           </AlertDescription>
+          <div className="mt-4">
+            <pre className="bg-gray-100 p-2 rounded text-sm">
+              {JSON.stringify({ error, caseDetails }, null, 2)}
+            </pre>
+          </div>
           <Button
             variant="outline"
             className="mt-4"
@@ -219,13 +208,13 @@ export default function JudgeCaseView() {
                   <h3 className="font-medium text-sm text-muted-foreground">
                     Court
                   </h3>
-                  <p>{caseDetails.court}</p>
+                  <p>{caseDetails.court || 'N/A'}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
                     Judge
                   </h3>
-                  <p>{caseDetails.judge}</p>
+                  <p>{`${caseDetails.judge?.firstName} ${caseDetails.judge?.lastName}` || 'N/A'}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
@@ -235,23 +224,19 @@ export default function JudgeCaseView() {
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
-                    Next Hearing
-                  </h3>
-                  <p>
-                    {new Date(caseDetails.nextHearingDate).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">
                     Applicant
                   </h3>
-                  <p>{caseDetails.applicant}</p>
+                  <p>{`${caseDetails.applicant?.firstName} ${caseDetails.applicant?.lastName}` || 'N/A'}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
-                    Respondent
+                    Lawyer
                   </h3>
-                  <p>{caseDetails.respondent}</p>
+                  <p>{`${caseDetails.lawyer?.firstName} ${caseDetails.lawyer?.lastName}` || 'N/A'}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground">Defendant</h3>
+                  <p>{`${caseDetails.defendant?.firstName} ${caseDetails.defendant?.lastName}` || 'N/A'}</p>
                 </div>
               </div>
 
@@ -260,7 +245,7 @@ export default function JudgeCaseView() {
                   Charges
                 </h3>
                 <ul className="list-disc list-inside">
-                  {caseDetails.charges.map((charge, index) => (
+                  {caseDetails.charges?.map((charge, index) => (
                     <li key={index}>{charge}</li>
                   ))}
                 </ul>
@@ -396,7 +381,7 @@ export default function JudgeCaseView() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {caseDetails.hearings.map((hearing, index) => (
+                  {caseDetails.hearings?.map((hearing, index) => (
                     <div key={index} className="border-b pb-4 last:border-0">
                       <div className="flex justify-between items-start">
                         <div>
@@ -436,7 +421,7 @@ export default function JudgeCaseView() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {caseDetails.documents.map((doc, index) => (
+                  {caseDetails.documents?.map((doc, index) => (
                     <div
                       key={index}
                       className="flex justify-between items-center p-2 hover:bg-muted rounded-md"
@@ -495,6 +480,23 @@ export default function JudgeCaseView() {
                       <p className="font-medium">{caseDetails.respondent}</p>
                       <p className="text-sm text-muted-foreground">
                         Represented by: Adv. Priya Singh
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-2">Defendant</h3>
+                    <div className="p-3 border rounded-md">
+                      <p className="font-medium">
+                        {`${caseDetails.defendant?.firstName} ${caseDetails.defendant?.lastName}`}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Email: {caseDetails.defendant?.email}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Phone: {caseDetails.defendant?.phone}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Address: {caseDetails.defendant?.address}
                       </p>
                     </div>
                   </div>

@@ -10,7 +10,8 @@ import {
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Calendar, FileText, MessageSquare, PieChart } from "lucide-react";
-import { Link } from "react-router-dom";
+
+import { Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { motion } from "framer-motion";
 import { caseService } from "../services/api";
@@ -21,6 +22,7 @@ export default function Dashboard() {
   const [cases, setCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchCases() {
@@ -173,6 +175,10 @@ export default function Dashboard() {
     show: { opacity: 1, y: 0 },
   };
 
+  const handleCaseClick = (caseId) => {
+    navigate(`/judge/case/${caseId}`);
+  };
+
   return (
     <DashboardLayout>
       <motion.div
@@ -275,7 +281,8 @@ export default function Dashboard() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.5 + index * 0.1 }}
-                        className="flex items-center gap-4"
+                        className="flex items-center gap-4 cursor-pointer hover:bg-gray-50 p-2 rounded-md"
+                        onClick={() => handleCaseClick(app._id)}
                       >
                         <div
                           className={`w-2 h-2 rounded-full ${
