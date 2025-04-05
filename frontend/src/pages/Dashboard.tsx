@@ -313,7 +313,9 @@ export default function Dashboard() {
           <Card className="lg:col-span-3">
             <CardHeader>
               <CardTitle>Upcoming Hearings</CardTitle>
-              <CardDescription>You have 3 hearings scheduled</CardDescription>
+              <CardDescription>
+                You have {upcomingHearings.length} hearings scheduled
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -331,15 +333,18 @@ export default function Dashboard() {
                       ))
                   : upcomingHearings.map((hearing, index) => (
                       <motion.div
-                        key={hearing.name}
+                        key={hearing.id}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.5 + index * 0.1 }}
                         className="flex items-center gap-4"
                       >
                         <div className="min-w-[48px] rounded-md bg-primary/10 p-2 text-center">
-                          <p className="text-xs font-medium">{hearing.month}</p>
-                          <p className="text-lg font-bold">{hearing.day}</p>
+                          <p className="text-xs font-medium">
+                            {hearing.day} {"-"}
+                            {hearing.month}
+                          </p>
+                          <p className="text-lg font-bold">{hearing.time}</p>
                         </div>
                         <div>
                           <p className="text-sm font-medium">{hearing.name}</p>

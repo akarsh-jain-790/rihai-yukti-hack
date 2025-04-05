@@ -7,12 +7,13 @@ const caseRoutes = require("./routes/cases");
 const userRoutes = require("./routes/users");
 const hearingRoutes = require("./routes/hearings");
 const riskAssessmentRoutes = require("./routes/riskAssessment");
+const applicationRoutes = require("./routes/application");
 const seedData = require("./utils/seedData");
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 6000;
+const PORT = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors());
@@ -49,13 +50,12 @@ app.use("/api/cases", caseRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/hearings", hearingRoutes);
 app.use("/api/risk-assessment", riskAssessmentRoutes);
+app.use("/api/applications", applicationRoutes);
 
 // Health check route
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "Server is running" });
 });
-
-// Add proper error handling middleware at the end of the file, before app.listen
 
 // Global error handler
 app.use((err, req, res, next) => {

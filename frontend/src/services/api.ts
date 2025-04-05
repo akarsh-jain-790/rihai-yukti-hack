@@ -348,5 +348,80 @@ export const userService = {
   },
 }
 
+// Application services
+export const applicationService = {
+  getAllApplications: async () => {
+    try {
+      const response = await api.get("/applications")
+      return response.data
+    } catch (error) {
+      console.error("Error fetching applications:", error)
+      throw error
+    }
+  },
+
+  getApplicationById: async (id: string) => {
+    try {
+      const response = await api.get(`/applications/${id}`)
+      return response.data
+    } catch (error) {
+      console.error(`Error fetching application ${id}:`, error)
+      throw error
+    }
+  },
+
+  createApplication: async (applicationData: any) => {
+    try {
+      const response = await api.post("/applications", applicationData)
+      return response.data
+    } catch (error) {
+      console.error("Error creating application:", error)
+      throw error
+    }
+  },
+
+  updateApplication: async (id: string, applicationData: any) => {
+    try {
+      const response = await api.put(`/applications/${id}`, applicationData)
+      return response.data
+    } catch (error) {
+      console.error(`Error updating application ${id}:`, error)
+      throw error
+    }
+  },
+
+  downloadApplication: async (id: string, format: string) => {
+    try {
+      const response = await api.get(`/applications/${id}/download?format=${format}`, {
+        responseType: "blob",
+      })
+      return response.data
+    } catch (error) {
+      console.error(`Error downloading application ${id}:`, error)
+      throw error
+    }
+  },
+
+  shareApplication: async (id: string, email: string) => {
+    try {
+      const response = await api.post(`/applications/${id}/share`, { email })
+      return response.data
+    } catch (error) {
+      console.error(`Error sharing application ${id}:`, error)
+      throw error
+    }
+  },
+
+  getPendingApplications: async () => {
+    try {
+      const response = await api.get("/applications/judge/pending")
+      return response.data
+    } catch (error) {
+      console.error("Error fetching pending applications:", error)
+      throw error
+    }
+  },
+}
+
 export default api
 

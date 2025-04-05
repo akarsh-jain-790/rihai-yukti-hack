@@ -1,9 +1,8 @@
-const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Case = require("../models/Case");
 const Hearing = require("../models/Hearing");
-const RiskAssessment = require("../models/RiskAssessment");
 
 // Helper function to create a random date within a range
 const randomDate = (start, end) => {
@@ -23,7 +22,6 @@ const seedData = async () => {
     await User.deleteMany({});
     await Case.deleteMany({});
     await Hearing.deleteMany({});
-    await RiskAssessment.deleteMany({});
 
     // Create users
     const hashedPassword = await bcrypt.hash("password123", 10);
@@ -73,7 +71,7 @@ const seedData = async () => {
     ]);
 
     // Create users (applicants)
-    const users = await User.insertMany([
+    const applicants = await User.insertMany([
       {
         firstName: "Rahul",
         lastName: "Kumar",
@@ -116,24 +114,22 @@ const seedData = async () => {
     const courts = [
       "Sessions Court, Delhi",
       "High Court, Mumbai",
-      "Sessions Court, Bangalore",
+      "District Court, Bangalore",
       "District Court, Chennai",
     ];
-    const offenseTypes = ["bailable", "non-bailable", "economic"];
+    const offenseTypes = ["bailable", "non-bailable"];
     const sections = [
-      ["BNS 103", "BNS 109"], // Murder, Attempt to murder
-      ["BNS 65"], // Sexual assault
-      ["BNS 318", "BNS 320"], // Cheating
-      ["BNS 115"], // Grievous hurt
-      ["BNS 174", "BNS 175"], // Non-attendance
+      ["302", "307"], // Murder, Attempt to murder
+      ["376"], // Sexual assault
+      ["420"], // Cheating
+      ["323"], // Voluntarily causing hurt
     ];
     const allegations = [
-      "Accused of murder with premeditation",
+      "Accused of murder",
       "Accused of attempt to murder",
       "Accused of sexual assault",
-      "Accused of cheating and dishonestly inducing delivery of property",
-      "Accused of voluntarily causing grievous hurt",
-      "Accused of non-attendance in obedience to an order from public servant",
+      "Accused of cheating",
+      "Accused of voluntarily causing hurt",
     ];
     const custodyStatuses = [
       "Police Custody",
@@ -145,8 +141,9 @@ const seedData = async () => {
 
     // Create cases
     const cases = [];
-    for (let i = 0; i < 20; i++) {
-      const applicant = getRandomElement(users);
+    for (let i = 0; i < 10; i++) {
+      const applicant = getRandomElement(applicants);
+      const defendant = getRandomElement(applicants);
       const lawyer = getRandomElement(lawyers);
       const judge = getRandomElement(judges);
       const court = getRandomElement(courts);
@@ -160,11 +157,12 @@ const seedData = async () => {
       const filingDate = randomDate(new Date(2022, 0, 1), new Date());
       const arrestDate = randomDate(new Date(2021, 0, 1), filingDate);
 
-      const caseNumber = `BA-${i + 1}/${filingDate.getFullYear()}`;
+      const caseNumber = `C-${i + 1}/${filingDate.getFullYear()}`;
 
       const newCase = new Case({
         caseNumber,
         applicant: applicant._id,
+        defendant: defendant._id,
         lawyer: lawyer._id,
         court,
         judge: judge._id,
@@ -176,19 +174,17 @@ const seedData = async () => {
         arrestDate,
         custodyStatus,
         custodyPeriod: Math.floor(Math.random() * 180) + 10, // 10-190 days
-        bailGrounds:
-          "The accused has no prior criminal record and is a first-time offender. The accused has strong roots in the community and is not a flight risk.",
+        bailGrounds: "No prior criminal record",
         previousBailApplications: Math.floor(Math.random() * 3),
         proposedBailConditions: [
           "Regular reporting to police station",
           "Surrender of passport",
-          "Not to leave the city without permission",
         ],
         dcmCategory,
         updates: [
           {
             date: filingDate,
-            description: "Bail application filed",
+            description: "Case filed",
             updatedBy: lawyer._id,
           },
         ],
@@ -196,242 +192,74 @@ const seedData = async () => {
 
       const savedCase = await newCase.save();
       cases.push(savedCase);
+    }
 
-      // Create risk assessment for each case
-      if (Math.random() > 0.3) {
-        // 70% of cases have risk assessment
-        const criminalHistoryLevel =
-          Math.random() < 0.5 ? "low" : Math.random() < 0.7 ? "medium" : "high";
-        const flightRiskLevel =
-          Math.random() < 0.6 ? "low" : Math.random() < 0.8 ? "medium" : "high";
-        const severityLevel =
-          offenseType === "bailable"
-            ? "low"
-            : offenseType === "non-bailable"
-            ? "high"
-            : "medium";
-        const socialLevel =
-          Math.random() < 0.5 ? "low" : Math.random() < 0.7 ? "medium" : "high";
+    // Create hearings for each case
+    for (const caseItem of cases) {
+      const hearingCount = Math.floor(Math.random() * 3) + 1; // 1-3 hearings
 
-        // Calculate scores
-        const getScoreValue = (level) => {
-          switch (level) {
-            case "low":
-              return 1;
-            case "medium":
-              return 2;
-            case "high":
-              return 3;
-            default:
-              return 1;
-          }
-        };
+      for (let j = 0; j < hearingCount; j++) {
+        const hearingDate = randomDate(
+          caseItem.filingDate,
+          new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000)
+        ); // Up to 30 days in future
+        const hearingStatus =
+          hearingDate < new Date()
+            ? getRandomElement(["Completed", "Adjourned"])
+            : "Scheduled";
 
-        const weights = {
-          criminalHistory: 0.3,
-          flightRisk: 0.25,
-          severityOfCharges: 0.3,
-          socialEconomic: 0.15,
-        };
-
-        const factors = [
-          {
-            name: "Criminal History",
-            score: getScoreValue(criminalHistoryLevel),
-            weight: weights.criminalHistory,
-            weightedScore:
-              getScoreValue(criminalHistoryLevel) * weights.criminalHistory,
-            direction: criminalHistoryLevel === "low" ? "positive" : "negative",
-          },
-          {
-            name: "Flight Risk",
-            score: getScoreValue(flightRiskLevel),
-            weight: weights.flightRisk,
-            weightedScore: getScoreValue(flightRiskLevel) * weights.flightRisk,
-            direction: flightRiskLevel === "low" ? "positive" : "negative",
-          },
-          {
-            name: "Severity of Charges",
-            score: getScoreValue(severityLevel),
-            weight: weights.severityOfCharges,
-            weightedScore:
-              getScoreValue(severityLevel) * weights.severityOfCharges,
-            direction: severityLevel === "low" ? "positive" : "negative",
-          },
-          {
-            name: "Social/Economic Background",
-            score: getScoreValue(socialLevel),
-            weight: weights.socialEconomic,
-            weightedScore: getScoreValue(socialLevel) * weights.socialEconomic,
-            direction: socialLevel === "low" ? "positive" : "negative",
-          },
-        ];
-
-        const overallScore = factors.reduce(
-          (sum, factor) => sum + factor.weightedScore,
-          0
-        );
-
-        let riskLevel;
-        if (overallScore < 1.5) {
-          riskLevel = "Low";
-        } else if (overallScore < 2.5) {
-          riskLevel = "Medium";
-        } else {
-          riskLevel = "High";
-        }
-
-        // Generate recommendation based on risk level
-        let recommendation;
-        switch (riskLevel) {
-          case "Low":
-            recommendation = `The accused ${applicant.firstName} ${applicant.lastName} presents a low risk level. Consider granting bail with standard conditions such as regular reporting to the police station.`;
-            break;
-          case "Medium":
-            recommendation = `The accused ${applicant.firstName} ${applicant.lastName} presents a medium risk level. Consider imposing conditions such as regular reporting to the police station, surrender of passport, and a substantial surety bond.`;
-            break;
-          case "High":
-            recommendation = `The accused ${applicant.firstName} ${applicant.lastName} presents a high risk level. Bail may not be recommended due to significant flight risk, severity of charges, and/or criminal history. If bail is considered, strict conditions should be imposed.`;
-            break;
-        }
-
-        // Create similar cases
-        const similarCases = [];
-        for (let j = 0; j < 4; j++) {
-          similarCases.push({
-            caseNumber: `BA-${Math.floor(Math.random() * 500) + 1}/${
-              2022 - Math.floor(Math.random() * 3)
-            }`,
-            court: getRandomElement(courts),
-            outcome: Math.random() > 0.5 ? "Approved" : "Rejected",
-            similarity: Math.floor(Math.random() * 20) + 70, // Random similarity between 70-90%
-          });
-        }
-
-        const riskAssessment = new RiskAssessment({
-          caseId: savedCase._id,
-          applicantId: applicant._id,
-          assessedBy: lawyer._id,
-          assessmentDate: randomDate(filingDate, new Date()),
-          overallScore,
-          riskLevel,
-          factors,
-          criminalHistory: {
-            level: criminalHistoryLevel,
-            details: `${
-              criminalHistoryLevel === "low"
-                ? "No"
-                : criminalHistoryLevel === "medium"
-                ? "Some"
-                : "Extensive"
-            } prior criminal record`,
-          },
-          flightRisk: {
-            level: flightRiskLevel,
-            details: `${
-              flightRiskLevel === "low"
-                ? "Strong"
-                : flightRiskLevel === "medium"
-                ? "Moderate"
-                : "Weak"
-            } community ties`,
-          },
-          severityOfCharges: {
-            level: severityLevel,
-            details: `${
-              severityLevel === "low"
-                ? "Minor"
-                : severityLevel === "medium"
-                ? "Moderate"
-                : "Serious"
-            } offense`,
-          },
-          socialEconomicBackground: {
-            level: socialLevel,
-            details: `${
-              socialLevel === "low"
-                ? "Stable"
-                : socialLevel === "medium"
-                ? "Moderate"
-                : "Unstable"
-            } social and economic background`,
-          },
-          recommendation,
-          similarCases,
+        const hearing = new Hearing({
+          caseId: caseItem._id,
+          date: hearingDate,
+          time: `${Math.floor(Math.random() * 8) + 10}:${
+            Math.random() > 0.5 ? "00" : "30"
+          } ${Math.random() > 0.5 ? "AM" : "PM"}`,
+          court: caseItem.court,
+          judge: caseItem.judge,
+          status: hearingStatus,
+          purpose: "Hearing for case progress",
+          notes:
+            hearingStatus === "Completed"
+              ? "Hearing completed as scheduled"
+              : "",
+          outcome:
+            hearingStatus === "Completed"
+              ? caseItem.status === "Approved"
+                ? "Case approved"
+                : caseItem.status === "Rejected"
+                ? "Case rejected"
+                : ""
+              : "",
+          attendees: [
+            {
+              user: caseItem.applicant,
+              role: "Applicant",
+              attended: hearingStatus === "Completed",
+            },
+            {
+              user: caseItem.lawyer,
+              role: "Lawyer",
+              attended: hearingStatus === "Completed",
+            },
+            {
+              user: caseItem.judge,
+              role: "Judge",
+              attended: hearingStatus === "Completed",
+            },
+          ],
         });
 
-        const savedAssessment = await riskAssessment.save();
+        const savedHearing = await hearing.save();
 
-        // Update case with risk assessment reference
-        savedCase.riskAssessment = savedAssessment._id;
-        await savedCase.save();
-      }
-
-      // Create hearings for each case
-      if (status !== "Pending") {
-        const hearingCount = Math.floor(Math.random() * 3) + 1; // 1-3 hearings
-
-        for (let j = 0; j < hearingCount; j++) {
-          const hearingDate = randomDate(
-            filingDate,
-            new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000)
-          ); // Up to 30 days in future
-          const hearingStatus =
-            hearingDate < new Date()
-              ? getRandomElement(["Completed", "Adjourned"])
-              : "Scheduled";
-
-          const hearing = new Hearing({
-            caseId: savedCase._id,
-            date: hearingDate,
-            time: `${Math.floor(Math.random() * 8) + 10}:${
-              Math.random() > 0.5 ? "00" : "30"
-            } ${Math.random() > 0.5 ? "AM" : "PM"}`,
-            court,
-            judge: judge._id,
-            status: hearingStatus,
-            purpose: "Bail hearing",
-            notes:
-              hearingStatus === "Completed"
-                ? "Hearing completed as scheduled"
-                : "",
-            outcome:
-              hearingStatus === "Completed"
-                ? status === "Approved"
-                  ? "Bail approved with conditions"
-                  : status === "Rejected"
-                  ? "Bail application rejected"
-                  : ""
-                : "",
-            attendees: [
-              {
-                user: applicant._id,
-                role: "Applicant",
-                attended: hearingStatus === "Completed",
-              },
-              {
-                user: lawyer._id,
-                role: "Lawyer",
-                attended: hearingStatus === "Completed",
-              },
-              {
-                user: judge._id,
-                role: "Judge",
-                attended: hearingStatus === "Completed",
-              },
-            ],
-          });
-
-          const savedHearing = await hearing.save();
-
-          // Update case with hearing reference
-          savedCase.hearings.push(savedHearing._id);
-          await savedCase.save();
-        }
+        // Update case with hearing reference
+        caseItem.hearings.push(savedHearing._id);
+        await caseItem.save();
       }
     }
 
-    console.log("Seed data created successfully");
+    console.log(
+      "Seed data for users, cases, and hearings created successfully"
+    );
   } catch (error) {
     console.error("Error seeding data:", error);
     throw error;

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
 
 const CaseSchema = new mongoose.Schema(
   {
@@ -13,6 +13,10 @@ const CaseSchema = new mongoose.Schema(
       required: true,
     },
     lawyer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    defendant: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
@@ -119,8 +123,7 @@ const CaseSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
-)
+  }
+);
 
-module.exports = mongoose.model("Case", CaseSchema)
-
+module.exports = mongoose.model("Case", CaseSchema);

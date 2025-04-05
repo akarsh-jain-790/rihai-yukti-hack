@@ -1,45 +1,61 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useRef, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card"
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
-import { MessageSquare, Send, User, Bot, FileText, ArrowRight, Paperclip } from "lucide-react"
-import DashboardLayout from "../components/layout/DashboardLayout"
+import { useState, useRef, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import {
+  MessageSquare,
+  Send,
+  User,
+  Bot,
+  FileText,
+  ArrowRight,
+  Paperclip,
+} from "lucide-react";
+import DashboardLayout from "../components/layout/DashboardLayout";
 
 interface Message {
-  id: string
-  content: string
-  sender: "user" | "bot"
-  timestamp: Date
+  id: string;
+  content: string;
+  sender: "user" | "bot";
+  timestamp: Date;
 }
 
 export default function Chatbot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content: "Hello! I'm the BNS Chatbot. How can I assist you with bail-related queries today?",
+      content:
+        "Hello! I'm the BNS Chatbot. How can I assist you with bail-related queries today?",
       sender: "bot",
       timestamp: new Date(),
     },
-  ])
-  const [inputValue, setInputValue] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  ]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const handleSendMessage = () => {
-    if (!inputValue.trim()) return
+    if (!inputValue.trim()) return;
 
     // Add user message
     const userMessage: Message = {
@@ -47,10 +63,10 @@ export default function Chatbot() {
       content: inputValue,
       sender: "user",
       timestamp: new Date(),
-    }
-    setMessages((prev) => [...prev, userMessage])
-    setInputValue("")
-    setIsLoading(true)
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setIsLoading(true);
 
     // Simulate bot response after a delay
     setTimeout(() => {
@@ -69,16 +85,16 @@ export default function Chatbot() {
           "Regular bail is granted to a person who is already in custody. It can be applied for under Section 437 and 439 of CrPC depending on the court's jurisdiction.",
         default:
           "I don't have specific information about that. Would you like to know about bail eligibility, bail application process, bail conditions, bail bonds, anticipatory bail, or regular bail?",
-      }
+      };
 
       // Generate bot response based on user query
-      let botResponse = botResponses.default
-      const userQuery = userMessage.content.toLowerCase()
+      let botResponse = botResponses.default;
+      const userQuery = userMessage.content.toLowerCase();
 
       for (const [keyword, response] of Object.entries(botResponses)) {
         if (userQuery.includes(keyword)) {
-          botResponse = response
-          break
+          botResponse = response;
+          break;
         }
       }
 
@@ -87,23 +103,23 @@ export default function Chatbot() {
         content: botResponse,
         sender: "bot",
         timestamp: new Date(),
-      }
+      };
 
-      setMessages((prev) => [...prev, newBotMessage])
-      setIsLoading(false)
-    }, 1500)
-  }
+      setMessages((prev) => [...prev, newBotMessage]);
+      setIsLoading(false);
+    }, 1500);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
+      e.preventDefault();
+      handleSendMessage();
     }
-  }
+  };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
 
   // Sample suggested queries
   const suggestedQueries = [
@@ -112,7 +128,7 @@ export default function Chatbot() {
     "What conditions can be imposed on bail?",
     "What is anticipatory bail?",
     "What documents are needed for bail application?",
-  ]
+  ];
 
   return (
     <DashboardLayout>
@@ -120,7 +136,9 @@ export default function Chatbot() {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">BNS Chatbot</h1>
-            <p className="text-muted-foreground">Get instant assistance with bail-related queries</p>
+            <p className="text-muted-foreground">
+              Get instant assistance with bail-related queries
+            </p>
           </div>
           <Button variant="outline">
             <FileText className="mr-2 h-4 w-4" />
@@ -150,10 +168,22 @@ export default function Chatbot() {
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                    className={`flex ${
+                      message.sender === "user"
+                        ? "justify-end"
+                        : "justify-start"
+                    }`}
                   >
-                    <div className={`flex max-w-[80%] ${message.sender === "user" ? "flex-row-reverse" : ""}`}>
-                      <Avatar className={`h-8 w-8 ${message.sender === "user" ? "ml-2" : "mr-2"}`}>
+                    <div
+                      className={`flex max-w-[80%] ${
+                        message.sender === "user" ? "flex-row-reverse" : ""
+                      }`}
+                    >
+                      <Avatar
+                        className={`h-8 w-8 ${
+                          message.sender === "user" ? "ml-2" : "mr-2"
+                        }`}
+                      >
                         {message.sender === "user" ? (
                           <>
                             <AvatarImage src="/user-avatar.png" />
@@ -173,7 +203,9 @@ export default function Chatbot() {
                       <div>
                         <div
                           className={`rounded-lg p-3 ${
-                            message.sender === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                            message.sender === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted"
                           }`}
                         >
                           {message.content}
@@ -223,7 +255,11 @@ export default function Chatbot() {
                   onKeyDown={handleKeyDown}
                   className="flex-1"
                 />
-                <Button size="icon" onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading}>
+                <Button
+                  size="icon"
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
@@ -235,7 +271,9 @@ export default function Chatbot() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Suggested Queries</CardTitle>
-                <CardDescription>Click on any query to ask the chatbot</CardDescription>
+                <CardDescription>
+                  Click on any query to ask the chatbot
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
                 {suggestedQueries.map((query, index) => (
@@ -244,7 +282,7 @@ export default function Chatbot() {
                     variant="outline"
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
-                      setInputValue(query)
+                      setInputValue(query);
                       // Optional: automatically send the query
                       // setInputValue(query);
                       // setTimeout(() => handleSendMessage(), 100);
@@ -260,24 +298,35 @@ export default function Chatbot() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Legal Resources</CardTitle>
-                <CardDescription>Helpful resources for bail-related information</CardDescription>
+                <CardDescription>
+                  Helpful resources for bail-related information
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button variant="outline" className="w-full justify-between text-left h-auto py-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between text-left h-auto py-2"
+                >
                   <div className="flex items-center">
                     <FileText className="mr-2 h-4 w-4 flex-shrink-0" />
                     <span>CrPC Section 436A</span>
                   </div>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" className="w-full justify-between text-left h-auto py-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between text-left h-auto py-2"
+                >
                   <div className="flex items-center">
                     <FileText className="mr-2 h-4 w-4 flex-shrink-0" />
                     <span>BNSS Bail Provisions</span>
                   </div>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" className="w-full justify-between text-left h-auto py-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between text-left h-auto py-2"
+                >
                   <div className="flex items-center">
                     <FileText className="mr-2 h-4 w-4 flex-shrink-0" />
                     <span>Bail Application Template</span>
@@ -290,6 +339,5 @@ export default function Chatbot() {
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }
-

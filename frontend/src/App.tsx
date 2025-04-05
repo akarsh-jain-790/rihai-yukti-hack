@@ -53,81 +53,81 @@ function App() {
               <Route
                 path="/calculator"
                 element={
-                  <PrivateRoute>
-                    <BailCalculator />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <BailCalculator />
+                  // </PrivateRoute>
                 }
               />
               <Route
                 path="/risk-assessment"
                 element={
-                  <PrivateRoute>
-                    <RiskAssessment />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <RiskAssessment />
+                  // </PrivateRoute>
                 }
               />
               <Route
                 path="/case-diary"
                 element={
-                  <PrivateRoute>
-                    <CaseDiary />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <CaseDiary />
+                  // </PrivateRoute>
                 }
               />
               <Route
                 path="/case/:id"
                 element={
-                  <PrivateRoute>
-                    <CaseDiary />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <CaseDiary />
+                  // </PrivateRoute>
                 }
               />
               <Route
                 path="/status-tracking"
                 element={
-                  <PrivateRoute>
-                    <StatusTracking />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <StatusTracking />
+                  // </PrivateRoute>
                 }
               />
               <Route
                 path="/predictive-analytics"
                 element={
-                  <PrivateRoute>
-                    <PredictiveAnalytics />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <PredictiveAnalytics />
+                  // </PrivateRoute>
                 }
               />
               <Route
                 path="/chatbot"
                 element={
-                  <PrivateRoute>
-                    <Chatbot />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <Chatbot />
+                  // </PrivateRoute>
                 }
               />
               <Route
                 path="/application"
                 element={
-                  <PrivateRoute>
-                    <ApplicationGenerator />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <ApplicationGenerator />
+                  // </PrivateRoute>
                 }
               />
               <Route
                 path="/feedback"
                 element={
-                  <PrivateRoute>
-                    <Feedback />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <Feedback />
+                  // </PrivateRoute>
                 }
               />
               <Route
                 path="/settings"
                 element={
-                  <PrivateRoute>
-                    <Settings />
-                  </PrivateRoute>
+                  // <PrivateRoute>
+                  <Settings />
+                  // </PrivateRoute>
                 }
               />
 

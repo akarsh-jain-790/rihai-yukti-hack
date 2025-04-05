@@ -1,41 +1,42 @@
-const express = require("express")
-const router = express.Router()
-const Case = require("../models/Case")
-const User = require("../models/User")
-const RiskAssessment = require("../models/RiskAssessment")
-const Hearing = require("../models/Hearing") // Import Hearing model
-const auth = require("../middleware/auth")
-const roleCheck = require("../middleware/roleCheck")
+const express = require("express");
+const router = express.Router();
+const Case = require("../models/Case");
+const User = require("../models/User");
+const RiskAssessment = require("../models/RiskAssessment");
+const Hearing = require("../models/Hearing"); // Import Hearing model
+const auth = require("../middleware/auth");
+const roleCheck = require("../middleware/roleCheck");
 
 // @route   GET api/cases
 // @desc    Get all cases (filtered by role)
 // @access  Private
 router.get("/", auth, async (req, res) => {
   try {
-    const query = {}
+    const query = {};
 
     // Filter cases based on user role
     if (req.user.role === "lawyer") {
-      query.lawyer = req.user.id
+      query.lawyer = req.user.id;
     } else if (req.user.role === "user") {
-      query.applicant = req.user.id
+      query.applicant = req.user.id;
     } else if (req.user.role === "judge") {
-      query.judge = req.user.id
+      query.judge = req.user.id;
     }
 
     const cases = await Case.find(query)
       .populate("applicant", "firstName lastName")
       .populate("lawyer", "firstName lastName barCouncilNumber")
+      .populate("defendant", "firstName lastName")
       .populate("judge", "firstName lastName courtId")
       .populate("riskAssessment")
-      .sort({ filingDate: -1 })
+      .sort({ filingDate: -1 });
 
-    res.json(cases)
+    res.json(cases);
   } catch (err) {
-    console.error(err.message)
-    res.status(500).send("Server error")
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
-})
+});
 
 // @route   GET api/cases/:id
 // @desc    Get case by ID
@@ -47,10 +48,10 @@ router.get("/:id", auth, async (req, res) => {
       .populate("lawyer", "firstName lastName barCouncilNumber email phone")
       .populate("judge", "firstName lastName courtId")
       .populate("riskAssessment")
-      .populate("hearings")
+      .populate("hearings");
 
     if (!caseItem) {
-      return res.status(404).json({ msg: "Case not found" })
+      return res.status(404).json({ msg: "Case not found" });
     }
 
     // Check if user has access to this case
@@ -62,18 +63,18 @@ router.get("/:id", auth, async (req, res) => {
       req.user.role === "judge" &&
       caseItem.judge.toString() !== req.user.id
     ) {
-      return res.status(403).json({ msg: "Access denied" })
+      return res.status(403).json({ msg: "Access denied" });
     }
 
-    res.json(caseItem)
+    res.json(caseItem);
   } catch (err) {
-    console.error(err.message)
+    console.error(err.message);
     if (err.kind === "ObjectId") {
-      return res.status(404).json({ msg: "Case not found" })
+      return res.status(404).json({ msg: "Case not found" });
     }
-    res.status(500).send("Server error")
+    res.status(500).send("Server error");
   }
-})
+});
 
 // @route   POST api/cases
 // @desc    Create a new case
@@ -92,13 +93,13 @@ router.post("/", [auth, roleCheck(["lawyer"])], async (req, res) => {
       bailGrounds,
       proposedBailConditions,
       dcmCategory,
-    } = req.body
+    } = req.body;
 
     // Generate a unique case number
-    const date = new Date()
-    const year = date.getFullYear()
-    const count = await Case.countDocuments()
-    const caseNumber = `BA-${count + 1}/${year}`
+    const date = new Date();
+    const year = date.getFullYear();
+    const count = await Case.countDocuments();
+    const caseNumber = `BA-${count + 1}/${year}`;
 
     const newCase = new Case({
       caseNumber,
@@ -115,26 +116,26 @@ router.post("/", [auth, roleCheck(["lawyer"])], async (req, res) => {
       bailGrounds,
       proposedBailConditions,
       dcmCategory,
-    })
+    });
 
-    const savedCase = await newCase.save()
+    const savedCase = await newCase.save();
 
-    res.json(savedCase)
+    res.json(savedCase);
   } catch (err) {
-    console.error(err.message)
-    res.status(500).send("Server error")
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
-})
+});
 
 // @route   PUT api/cases/:id
 // @desc    Update a case
 // @access  Private (Lawyer or Judge)
 router.put("/:id", [auth, roleCheck(["lawyer", "judge"])], async (req, res) => {
   try {
-    const caseItem = await Case.findById(req.params.id)
+    const caseItem = await Case.findById(req.params.id);
 
     if (!caseItem) {
-      return res.status(404).json({ msg: "Case not found" })
+      return res.status(404).json({ msg: "Case not found" });
     }
 
     // Check if user has access to update this case
@@ -144,85 +145,90 @@ router.put("/:id", [auth, roleCheck(["lawyer", "judge"])], async (req, res) => {
       req.user.role === "judge" &&
       caseItem.judge.toString() !== req.user.id
     ) {
-      return res.status(403).json({ msg: "Access denied" })
+      return res.status(403).json({ msg: "Access denied" });
     }
 
     // Update fields based on role
     if (req.user.role === "lawyer") {
       // Lawyers can update certain fields
-      const { bailGrounds, proposedBailConditions, documents } = req.body
+      const { bailGrounds, proposedBailConditions, documents } = req.body;
 
-      if (bailGrounds) caseItem.bailGrounds = bailGrounds
-      if (proposedBailConditions) caseItem.proposedBailConditions = proposedBailConditions
-      if (documents) caseItem.documents = documents
+      if (bailGrounds) caseItem.bailGrounds = bailGrounds;
+      if (proposedBailConditions)
+        caseItem.proposedBailConditions = proposedBailConditions;
+      if (documents) caseItem.documents = documents;
     } else if (req.user.role === "judge") {
       // Judges can update status and add updates
-      const { status, notes } = req.body
+      const { status, notes } = req.body;
 
-      if (status) caseItem.status = status
+      if (status) caseItem.status = status;
 
       // Add update to case history
       if (notes) {
         caseItem.updates.push({
           description: notes,
           updatedBy: req.user.id,
-        })
+        });
       }
     }
 
     // Common updates for both roles
-    if (req.body.dcmCategory) caseItem.dcmCategory = req.body.dcmCategory
+    if (req.body.dcmCategory) caseItem.dcmCategory = req.body.dcmCategory;
 
-    const updatedCase = await caseItem.save()
+    const updatedCase = await caseItem.save();
 
-    res.json(updatedCase)
+    res.json(updatedCase);
   } catch (err) {
-    console.error(err.message)
+    console.error(err.message);
     if (err.kind === "ObjectId") {
-      return res.status(404).json({ msg: "Case not found" })
+      return res.status(404).json({ msg: "Case not found" });
     }
-    res.status(500).send("Server error")
+    res.status(500).send("Server error");
   }
-})
+});
 
 // @route   GET api/cases/judge/calendar
 // @desc    Get judge's calendar of cases
 // @access  Private (Judge only)
-router.get("/judge/calendar", [auth, roleCheck(["judge"])], async (req, res) => {
-  try {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+router.get(
+  "/judge/calendar",
+  [auth, roleCheck(["judge"])],
+  async (req, res) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    const hearings = await Hearing.find({
-      judge: req.user.id,
-      date: { $gte: today },
-    })
-      .populate({
-        path: "caseId",
-        select: "caseNumber applicant lawyer status dcmCategory",
-        populate: [
-          { path: "applicant", select: "firstName lastName" },
-          { path: "lawyer", select: "firstName lastName barCouncilNumber" },
-        ],
+      const hearings = await Hearing.find({
+        judge: req.user.id,
+        date: { $gte: today },
       })
-      .sort({ date: 1 })
+        .populate({
+          path: "caseId",
+          select: "caseNumber applicant lawyer status dcmCategory",
+          populate: [
+            { path: "applicant", select: "firstName lastName" },
+            { path: "lawyer", select: "firstName lastName barCouncilNumber" },
+          ],
+        })
+        .sort({ date: 1 });
 
-    res.json(hearings)
-  } catch (err) {
-    console.error(err.message)
-    res.status(500).send("Server error")
+      res.json(hearings);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Server error");
+    }
   }
-})
+);
 
 // @route   GET api/cases/today
 // @desc    Get today's cases
 // @access  Private (Judge only)
 router.get("/judge/today", [auth, roleCheck(["judge"])], async (req, res) => {
   try {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     const hearings = await Hearing.find({
       judge: req.user.id,
@@ -237,21 +243,21 @@ router.get("/judge/today", [auth, roleCheck(["judge"])], async (req, res) => {
           { path: "riskAssessment" },
         ],
       })
-      .sort({ time: 1 })
+      .sort({ time: 1 });
 
     // Group by DCM category
     const groupedHearings = {
       Expedited: hearings.filter((h) => h.caseId.dcmCategory === "Expedited"),
       Standard: hearings.filter((h) => h.caseId.dcmCategory === "Standard"),
       Complex: hearings.filter((h) => h.caseId.dcmCategory === "Complex"),
-    }
+    };
 
-    res.json(groupedHearings)
+    res.json(groupedHearings);
   } catch (err) {
-    console.error(err.message)
-    res.status(500).send("Server error")
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
-})
+});
 
 // @route   GET api/cases/:id/history
 // @desc    Get case history and accused past cases
@@ -260,10 +266,10 @@ router.get("/:id/history", [auth, roleCheck(["judge"])], async (req, res) => {
   try {
     const caseItem = await Case.findById(req.params.id)
       .populate("applicant", "firstName lastName")
-      .populate("riskAssessment")
+      .populate("riskAssessment");
 
     if (!caseItem) {
-      return res.status(404).json({ msg: "Case not found" })
+      return res.status(404).json({ msg: "Case not found" });
     }
 
     // Get past cases for the same applicant
@@ -272,20 +278,19 @@ router.get("/:id/history", [auth, roleCheck(["judge"])], async (req, res) => {
       _id: { $ne: req.params.id },
     })
       .select("caseNumber status filingDate court sections allegations")
-      .sort({ filingDate: -1 })
+      .sort({ filingDate: -1 });
 
     res.json({
       currentCase: caseItem,
       pastCases,
-    })
+    });
   } catch (err) {
-    console.error(err.message)
+    console.error(err.message);
     if (err.kind === "ObjectId") {
-      return res.status(404).json({ msg: "Case not found" })
+      return res.status(404).json({ msg: "Case not found" });
     }
-    res.status(500).send("Server error")
+    res.status(500).send("Server error");
   }
-})
+});
 
-module.exports = router
-
+module.exports = router;
