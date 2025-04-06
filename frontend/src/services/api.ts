@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API_URL = "http://localhost:4000/api"
+const API_URL = "https://rihai-yukti-hack.onrender.com/api"
 
 // Create axios instance
 const api = axios.create({
@@ -418,6 +418,29 @@ export const applicationService = {
       return response.data
     } catch (error) {
       console.error("Error fetching pending applications:", error)
+      throw error
+    }
+  },
+}
+
+// Analytics services
+export const analyticsService = {
+  getPredictiveAnalytics: async (caseId: string) => {
+    try {
+      const response = await api.get(`/analytics/predictive/${caseId}`)
+      return response.data
+    } catch (error) {
+      console.error(`Error fetching predictive analytics for case ${caseId}:`, error)
+      throw error
+    }
+  },
+
+  getTrends: async () => {
+    try {
+      const response = await api.get("/analytics/trends")
+      return response.data
+    } catch (error) {
+      console.error("Error fetching analytics trends:", error)
       throw error
     }
   },
