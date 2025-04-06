@@ -33,49 +33,12 @@ import {
   Scale,
   Percent,
 } from "lucide-react";
-import { caseService } from "../../services/api";
-
-// Update the interface to match the actual API response
-interface CaseDetails {
-  _id: string;
-  caseNumber: string;
-  applicant: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-  };
-  lawyer: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    barCouncilNumber: string;
-  };
-  judge: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    courtId: string;
-  };
-  defendant: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address: string;
-  };
-  court: string;
-  status: string;
-  filingDate: string;
-  allegations: string;
-  sections: string[];
-  custodyStatus: string;
-  custodyPeriod: number;
-  // ...other fields
-}
+import {
+  caseService,
+  riskAssessmentService,
+  analyticsService,
+} from "../../services/api";
+import { useAuth } from "../../context/AuthContext"; // Import auth context
 
 export default function JudgeCaseView() {
   const { id } = useParams<{ id: string }>();
@@ -108,7 +71,6 @@ export default function JudgeCaseView() {
 
   useEffect(() => {
     const fetchCaseDetails = async () => {
-      console.log("sadwafsd");
       if (!id) {
         setError("Case ID is missing");
         setLoading(false);
@@ -117,26 +79,37 @@ export default function JudgeCaseView() {
 
       try {
         setLoading(true);
-        const data = await caseService.getCaseById(id!);
-        console.log("API Response:", data);
-        
-        // Transform API data to match your component's needs
-        const transformedData: CaseDetails = {
-          ...data,
-          title: `Case ${data.caseNumber}`, // Create a title from case number
-          charges: data.charges || [],
-          documents: data.documents || [],
-          hearings: data.hearings || [],
-          applicant: data.applicant || { name: 'N/A' },
-          description: data.description || 'No description available',
-        };
+        setError(null);
 
-        setCaseDetails(transformedData);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error details:", err);
-        setError("Failed to load case details. Please try again.");
-        setLoading(false);
+        // Use real API service instead of mock
+        const caseResponse = await caseService.getCaseById(id);
+
+        if (!caseResponse) {
+          throw new Error("Case not found");
+        }
+
+        setCaseDetails(caseResponse);
+        console.log("kjjsf");
+        // Try to fetch risk assessment
+        try {
+          const riskResponse = await riskAssessmentService.getRiskAssessment(
+            id
+          );
+          setRiskAssessment(riskResponse);
+        } catch (riskErr) {
+          console.log("Risk assessment not available", riskErr);
+          // Don't throw error for missing risk assessment
+        }
+
+        // Fetch predictive analytics after case details are loaded
+        fetchPredictiveAnalytics(id, caseResponse);
+      } catch (err: any) {
+        console.error("Error fetching case details:", err);
+        setError(
+          err.response?.data?.msg ||
+            err.message ||
+            "Failed to load case details. Please try again."
+        );
         addToast({
           title: "Error",
           description: "Failed to load case details",
@@ -147,10 +120,10 @@ export default function JudgeCaseView() {
       }
     };
 
-    if (id) {
+    if (isAuthenticated && user?.role === "judge" && id) {
       fetchCaseDetails();
     }
-  }, [id, addToast]);
+  }, [id, addToast, isAuthenticated, user]);
 
   const fetchPredictiveAnalytics = async (caseId: string, caseData: any) => {
     try {
@@ -267,10 +240,9 @@ export default function JudgeCaseView() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[80vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-2 text-lg">Loading case details...</span>
-          <span className="text-sm text-muted-foreground">Case ID: {id}</span>
         </div>
       </DashboardLayout>
     );
@@ -283,13 +255,8 @@ export default function JudgeCaseView() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            {error || `Case details not found for ID: ${id}`}
+            {error || "Case details not found"}
           </AlertDescription>
-          <div className="mt-4">
-            <pre className="bg-gray-100 p-2 rounded text-sm">
-              {JSON.stringify({ error, caseDetails }, null, 2)}
-            </pre>
-          </div>
           <Button
             variant="outline"
             className="mt-4"
@@ -343,13 +310,13 @@ export default function JudgeCaseView() {
                   <h3 className="font-medium text-sm text-muted-foreground">
                     Court
                   </h3>
-                  <p>{caseDetails.court || 'N/A'}</p>
+                  <p>{caseDetails.court}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
                     Judge
                   </h3>
-                  <p>{`${caseDetails.judge?.firstName} ${caseDetails.judge?.lastName}` || 'N/A'}</p>
+                  <p>{caseDetails.judge}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
@@ -359,19 +326,27 @@ export default function JudgeCaseView() {
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
-                    Applicant
+                    Next Hearing
                   </h3>
-                  <p>{`${caseDetails.applicant?.firstName} ${caseDetails.applicant?.lastName}` || 'N/A'}</p>
+                  <p>
+                    {caseDetails.nextHearingDate
+                      ? new Date(
+                          caseDetails.nextHearingDate
+                        ).toLocaleDateString()
+                      : "Not scheduled"}
+                  </p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground">
-                    Lawyer
+                    Applicant
                   </h3>
-                  <p>{`${caseDetails.lawyer?.firstName} ${caseDetails.lawyer?.lastName}` || 'N/A'}</p>
+                  <p>{caseDetails.applicant?.name || caseDetails.applicant}</p>
                 </div>
                 <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Defendant</h3>
-                  <p>{`${caseDetails.defendant?.firstName} ${caseDetails.defendant?.lastName}` || 'N/A'}</p>
+                  <h3 className="font-medium text-sm text-muted-foreground">
+                    Respondent
+                  </h3>
+                  <p>{caseDetails.respondent}</p>
                 </div>
               </div>
 
@@ -380,9 +355,10 @@ export default function JudgeCaseView() {
                   Charges
                 </h3>
                 <ul className="list-disc list-inside">
-                  {caseDetails.charges?.map((charge, index) => (
-                    <li key={index}>{charge}</li>
-                  ))}
+                  {caseDetails.charges &&
+                    caseDetails.charges.map((charge: string, index: number) => (
+                      <li key={index}>{charge}</li>
+                    ))}
                 </ul>
               </div>
 
@@ -542,15 +518,22 @@ export default function JudgeCaseView() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {caseDetails.hearings?.map((hearing, index) => (
-                    <div key={index} className="border-b pb-4 last:border-0">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{hearing.type}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(hearing.date).toLocaleDateString()} at{" "}
-                            {hearing.time}
-                          </p>
+                  {caseDetails.hearings && caseDetails.hearings.length > 0 ? (
+                    caseDetails.hearings.map((hearing: any, index: number) => (
+                      <div key={index} className="border-b pb-4 last:border-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium">
+                              {hearing.type || hearing.purpose}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(hearing.date).toLocaleDateString()} at{" "}
+                              {hearing.time}
+                            </p>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            View Details
+                          </Button>
                         </div>
                         <p className="text-sm mt-2">{hearing.notes}</p>
                       </div>
@@ -585,18 +568,20 @@ export default function JudgeCaseView() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {caseDetails.documents?.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-2 hover:bg-muted rounded-md"
-                    >
-                      <div className="flex items-center">
-                        <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Added on {new Date(doc.date).toLocaleDateString()}
-                          </p>
+                  {caseDetails.documents && caseDetails.documents.length > 0 ? (
+                    caseDetails.documents.map((doc: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center p-2 hover:bg-muted rounded-md"
+                      >
+                        <div className="flex items-center">
+                          <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{doc.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Added on {new Date(doc.date).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
                         <Button variant="ghost" size="sm" asChild>
                           <a
@@ -681,24 +666,7 @@ export default function JudgeCaseView() {
                         )}
                       </div>
                     </div>
-                  </div>
-                  <div>
-                    <h3 className="font-medium mb-2">Defendant</h3>
-                    <div className="p-3 border rounded-md">
-                      <p className="font-medium">
-                        {`${caseDetails.defendant?.firstName} ${caseDetails.defendant?.lastName}`}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Email: {caseDetails.defendant?.email}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Phone: {caseDetails.defendant?.phone}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Address: {caseDetails.defendant?.address}
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
