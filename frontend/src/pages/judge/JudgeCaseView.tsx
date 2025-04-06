@@ -18,7 +18,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "../../components/ui/tabs";
-import { Alert } from "../../components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { useToast } from "../../components/ui/toaster";
 import {
   Loader2,
@@ -28,6 +28,10 @@ import {
   User,
   CheckCircle,
   XCircle,
+  BarChart,
+  AlertTriangle,
+  Scale,
+  Percent,
 } from "lucide-react";
 import { caseService } from "../../services/api";
 
@@ -77,12 +81,40 @@ export default function JudgeCaseView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { isAuthenticated, user } = useAuth(); // Use auth context
   const [loading, setLoading] = useState(true);
-  const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
+  const [caseDetails, setCaseDetails] = useState<any | null>(null);
+  const [riskAssessment, setRiskAssessment] = useState<any | null>(null);
+  const [predictiveAnalytics, setPredictiveAnalytics] = useState<any | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // Check authentication first
+  // useEffect(() => {
+  //   if (!isAuthenticated) {
+  //     navigate("/login", { replace: true });
+  //   } else if (user && user.role !== "judge") {
+  //     navigate("/dashboard", { replace: true });
+  //     addToast({
+  //       title: "Access Denied",
+  //       description: "You don't have permission to view this page",
+  //       type: "error",
+  //     });
+  //   }
+  // }, [isAuthenticated, user, navigate, addToast]);
 
   useEffect(() => {
     const fetchCaseDetails = async () => {
+      console.log("sadwafsd");
+      if (!id) {
+        setError("Case ID is missing");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const data = await caseService.getCaseById(id!);
@@ -110,6 +142,8 @@ export default function JudgeCaseView() {
           description: "Failed to load case details",
           type: "error",
         });
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -118,23 +152,117 @@ export default function JudgeCaseView() {
     }
   }, [id, addToast]);
 
-  const handleStatusUpdate = (newStatus: string) => {
-    setCaseDetails((prev) => (prev ? { ...prev, status: newStatus } : null));
-    addToast({
-      title: "Status Updated",
-      description: `Case status updated to ${newStatus}`,
-      type: "success",
-    });
+  const fetchPredictiveAnalytics = async (caseId: string, caseData: any) => {
+    try {
+      setAnalyticsLoading(true);
+      const analytics = await analyticsService.getPredictiveAnalytics(caseId);
+      setPredictiveAnalytics(analytics);
+    } catch (err: any) {
+      console.error("Error fetching predictive analytics:", err);
+      // Don't set the main error state, just log it
+      addToast({
+        title: "Warning",
+        description: "Could not load predictive analytics",
+        type: "warning",
+      });
+
+      // Use mock data for demo purposes if API fails
+      setPredictiveAnalytics({
+        approvalProbability: 75,
+        confidenceLevel: "High",
+        riskLevel: "Medium",
+        keyFactors: [
+          {
+            name: "Time in custody",
+            impact: "positive",
+            description:
+              "Accused has spent significant time in custody relative to potential sentence",
+          },
+          {
+            name: "Previous convictions",
+            impact: "negative",
+            description: "Accused has prior convictions for similar offenses",
+          },
+          {
+            name: "Community ties",
+            impact: "positive",
+            description:
+              "Strong family and community connections reduce flight risk",
+          },
+        ],
+        similarCases: [
+          {
+            id: "1",
+            caseNumber: "BA-2023-1045",
+            court: "Delhi High Court",
+            similarity: 87,
+            outcome: "Approved",
+          },
+          {
+            id: "2",
+            caseNumber: "BA-2023-0872",
+            court: "Delhi District Court",
+            similarity: 76,
+            outcome: "Rejected",
+          },
+          {
+            id: "3",
+            caseNumber: "BA-2022-1532",
+            court: "Delhi High Court",
+            similarity: 68,
+            outcome: "Approved",
+          },
+        ],
+        recommendation:
+          "Based on case factors and legal precedents, bail approval is recommended with conditions including regular reporting to the local police station and surrender of passport.",
+      });
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus: string) => {
+    try {
+      setStatusUpdateLoading(true);
+      setError(null);
+
+      await caseService.updateCase(id!, { status: newStatus });
+
+      // Update local state
+      setCaseDetails((prev) => (prev ? { ...prev, status: newStatus } : null));
+
+      addToast({
+        title: "Status Updated",
+        description: `Case status updated to ${newStatus}`,
+        type: "success",
+      });
+    } catch (err: any) {
+      console.error("Error updating case status:", err);
+      setError(
+        err.response?.data?.msg ||
+          err.message ||
+          "Failed to update case status. Please try again."
+      );
+      addToast({
+        title: "Update Failed",
+        description:
+          err.response?.data?.msg ||
+          err.message ||
+          "Failed to update case status. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setStatusUpdateLoading(false);
+    }
   };
 
   const handleScheduleHearing = () => {
-    // In a real app, this would open a modal or navigate to a scheduling page
-    addToast({
-      title: "Feature Coming Soon",
-      description: "Hearing scheduling will be available soon",
-      type: "info",
-    });
+    navigate(`/judge/schedule-hearing/${id}`);
   };
+
+  if (!isAuthenticated || (user && user.role !== "judge")) {
+    return null; // Don't render anything while redirecting
+  }
 
   if (loading) {
     return (
@@ -177,6 +305,13 @@ export default function JudgeCaseView() {
   return (
     <DashboardLayout>
       <div className="container mx-auto py-6 space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
@@ -283,8 +418,15 @@ export default function JudgeCaseView() {
                   size="sm"
                   onClick={() => handleStatusUpdate("Approved")}
                   className="text-green-600 border-green-200 hover:bg-green-50"
+                  disabled={
+                    caseDetails.status === "Approved" || statusUpdateLoading
+                  }
                 >
-                  <CheckCircle className="h-4 w-4 mr-1" />
+                  {statusUpdateLoading ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                  )}
                   Approve
                 </Button>
                 <Button
@@ -292,8 +434,15 @@ export default function JudgeCaseView() {
                   size="sm"
                   onClick={() => handleStatusUpdate("Rejected")}
                   className="text-red-600 border-red-200 hover:bg-red-50"
+                  disabled={
+                    caseDetails.status === "Rejected" || statusUpdateLoading
+                  }
                 >
-                  <XCircle className="h-4 w-4 mr-1" />
+                  {statusUpdateLoading ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mr-1" />
+                  )}
                   Reject
                 </Button>
               </div>
@@ -306,24 +455,24 @@ export default function JudgeCaseView() {
               <CardDescription>Bail risk evaluation</CardDescription>
             </CardHeader>
             <CardContent>
-              {caseDetails.riskAssessment ? (
+              {riskAssessment ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Risk Score</span>
                     <span className="font-bold">
-                      {caseDetails.riskAssessment.score}/100
+                      {riskAssessment.score}/100
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div
                       className={`h-2.5 rounded-full ${
-                        caseDetails.riskAssessment.level === "Low"
+                        riskAssessment.level === "Low"
                           ? "bg-green-500"
-                          : caseDetails.riskAssessment.level === "Medium"
+                          : riskAssessment.level === "Medium"
                           ? "bg-yellow-500"
                           : "bg-red-500"
                       }`}
-                      style={{ width: `${caseDetails.riskAssessment.score}%` }}
+                      style={{ width: `${riskAssessment.score}%` }}
                     ></div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -334,8 +483,8 @@ export default function JudgeCaseView() {
                   <div className="pt-4">
                     <h3 className="font-medium text-sm mb-2">Risk Factors</h3>
                     <ul className="space-y-1">
-                      {caseDetails.riskAssessment.factors.map(
-                        (factor, index) => (
+                      {riskAssessment.factors.map(
+                        (factor: string, index: number) => (
                           <li key={index} className="text-sm flex items-start">
                             <span className="mr-2">•</span>
                             <span>{factor}</span>
@@ -350,6 +499,14 @@ export default function JudgeCaseView() {
                   <p className="text-muted-foreground">
                     No risk assessment available
                   </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => navigate(`/risk-assessment/${id}`)}
+                  >
+                    Perform Risk Assessment
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -369,6 +526,10 @@ export default function JudgeCaseView() {
             <TabsTrigger value="parties" className="flex items-center">
               <User className="h-4 w-4 mr-2" />
               Parties
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center">
+              <BarChart className="h-4 w-4 mr-2" />
+              Predictive Analytics
             </TabsTrigger>
           </TabsList>
           <TabsContent value="hearings" className="mt-4">
@@ -391,13 +552,16 @@ export default function JudgeCaseView() {
                             {hearing.time}
                           </p>
                         </div>
-                        <Button variant="ghost" size="sm">
-                          View Details
-                        </Button>
+                        <p className="text-sm mt-2">{hearing.notes}</p>
                       </div>
-                      <p className="text-sm mt-2">{hearing.notes}</p>
+                    ))
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">
+                        No hearings scheduled for this case yet.
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
               <CardFooter>
@@ -434,18 +598,24 @@ export default function JudgeCaseView() {
                             Added on {new Date(doc.date).toLocaleDateString()}
                           </p>
                         </div>
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View
+                          </a>
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="sm" asChild>
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View
-                        </a>
-                      </Button>
+                    ))
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">
+                        No documents available for this case.
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
               <CardFooter>
@@ -468,19 +638,48 @@ export default function JudgeCaseView() {
                   <div>
                     <h3 className="font-medium mb-2">Applicant</h3>
                     <div className="p-3 border rounded-md">
-                      <p className="font-medium">{caseDetails.applicant}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Represented by: Adv. Rajesh Kumar
+                      <p className="font-medium">
+                        {caseDetails.applicant?.name || caseDetails.applicant}
                       </p>
+                      {caseDetails.applicant?.address && (
+                        <p className="text-sm text-muted-foreground">
+                          Address: {caseDetails.applicant.address}
+                        </p>
+                      )}
+                      {caseDetails.applicant?.phone && (
+                        <p className="text-sm text-muted-foreground">
+                          Phone: {caseDetails.applicant.phone}
+                        </p>
+                      )}
+                      {caseDetails.applicant?.email && (
+                        <p className="text-sm text-muted-foreground">
+                          Email: {caseDetails.applicant.email}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium mb-2">Respondent</h3>
-                    <div className="p-3 border rounded-md">
-                      <p className="font-medium">{caseDetails.respondent}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Represented by: Adv. Priya Singh
-                      </p>
+                  {caseDetails.lawyer && (
+                    <div>
+                      <h3 className="font-medium mb-2">Lawyer</h3>
+                      <div className="p-3 border rounded-md">
+                        <p className="font-medium">{caseDetails.lawyer.name}</p>
+                        {caseDetails.lawyer.barCouncilNumber && (
+                          <p className="text-sm text-muted-foreground">
+                            Bar Council Number:{" "}
+                            {caseDetails.lawyer.barCouncilNumber}
+                          </p>
+                        )}
+                        {caseDetails.lawyer.phone && (
+                          <p className="text-sm text-muted-foreground">
+                            Phone: {caseDetails.lawyer.phone}
+                          </p>
+                        )}
+                        {caseDetails.lawyer.email && (
+                          <p className="text-sm text-muted-foreground">
+                            Email: {caseDetails.lawyer.email}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -501,6 +700,215 @@ export default function JudgeCaseView() {
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="analytics" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Predictive Analytics</CardTitle>
+                <CardDescription>
+                  AI-powered insights and predictions for this case
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {analyticsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <span className="ml-2">Loading analytics...</span>
+                  </div>
+                ) : predictiveAnalytics ? (
+                  <div className="space-y-6">
+                    {/* Bail Approval Prediction */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">
+                        Bail Approval Prediction
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-white p-4 rounded-lg border shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Approval Probability
+                              </p>
+                              <p className="text-2xl font-bold">
+                                {predictiveAnalytics.approvalProbability}%
+                              </p>
+                            </div>
+                            <Percent className="h-8 w-8 text-green-500" />
+                          </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Confidence Level
+                              </p>
+                              <p className="text-2xl font-bold">
+                                {predictiveAnalytics.confidenceLevel}
+                              </p>
+                            </div>
+                            <Scale className="h-8 w-8 text-blue-500" />
+                          </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-muted-foreground">
+                                Risk Level
+                              </p>
+                              <p className="text-2xl font-bold">
+                                {predictiveAnalytics.riskLevel}
+                              </p>
+                            </div>
+                            <AlertTriangle
+                              className={`h-8 w-8 ${
+                                predictiveAnalytics.riskLevel === "Low"
+                                  ? "text-green-500"
+                                  : predictiveAnalytics.riskLevel === "Medium"
+                                  ? "text-yellow-500"
+                                  : "text-red-500"
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Key Factors */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">
+                        Key Factors Influencing Decision
+                      </h3>
+                      <div className="space-y-3">
+                        {predictiveAnalytics.keyFactors.map(
+                          (factor: any, index: number) => (
+                            <div key={index} className="flex items-center">
+                              <div
+                                className={`w-1 h-10 rounded-full mr-3 ${
+                                  factor.impact === "positive"
+                                    ? "bg-green-500"
+                                    : "bg-red-500"
+                                }`}
+                              ></div>
+                              <div className="flex-1">
+                                <div className="flex justify-between items-center">
+                                  <p className="font-medium">{factor.name}</p>
+                                  <span
+                                    className={`text-sm ${
+                                      factor.impact === "positive"
+                                        ? "text-green-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    {factor.impact === "positive"
+                                      ? "Favorable"
+                                      : "Unfavorable"}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {factor.description}
+                                </p>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Similar Cases */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">
+                        Similar Cases
+                      </h3>
+                      <div className="space-y-3">
+                        {predictiveAnalytics.similarCases.map(
+                          (similarCase: any, index: number) => (
+                            <div key={index} className="p-3 border rounded-md">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium">
+                                    {similarCase.caseNumber}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {similarCase.court}
+                                  </p>
+                                </div>
+                                <div className="flex items-center">
+                                  <span className="text-sm mr-2">
+                                    Similarity:
+                                  </span>
+                                  <span className="font-medium">
+                                    {similarCase.similarity}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="mt-2 flex justify-between items-center">
+                                <p className="text-sm">
+                                  <span className="text-muted-foreground">
+                                    Outcome:
+                                  </span>{" "}
+                                  <span
+                                    className={`font-medium ${
+                                      similarCase.outcome === "Approved"
+                                        ? "text-green-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    {similarCase.outcome}
+                                  </span>
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    navigate(`/judge/case/${similarCase.id}`)
+                                  }
+                                >
+                                  View Case
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Recommendations */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-3">
+                        AI Recommendations
+                      </h3>
+                      <div className="p-4 border rounded-md bg-muted/30">
+                        <p className="italic">
+                          {predictiveAnalytics.recommendation}
+                        </p>
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-sm text-muted-foreground">
+                            Note: This is an AI-generated recommendation based
+                            on historical data and case patterns. It should be
+                            used as a reference only and not as a substitute for
+                            judicial discretion.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <BarChart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      No predictive analytics available for this case.
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => fetchPredictiveAnalytics(id!, caseDetails)}
+                    >
+                      Generate Analytics
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
