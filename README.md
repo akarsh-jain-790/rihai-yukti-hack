@@ -37,12 +37,12 @@ Built with judges, lawyers, and citizens in mind, it automates the bail process 
 # 📸 Clicks from the App
 
 <div style="display: flex; flex-direction: row; overflow-x: scroll">
-<img width="1470" alt="Screenshot 2025-04-06 at 9 19 10 AM" src="https://github.com/user-attachments/assets/ed2edff6-c953-47ec-b61e-23f8915d11ec" />
-<img width="1470" alt="Screenshot 2025-04-06 at 9 19 26 AM" src="https://github.com/user-attachments/assets/2e32f63c-8a8d-4ac9-8d6b-030dec59827c" />
-<img width="1470" alt="Screenshot 2025-04-06 at 9 19 32 AM" src="https://github.com/user-attachments/assets/323eaa70-bc01-4717-b0df-5752a53e39ce" />
-<img width="1459" alt="Screenshot 2025-04-06 at 9 21 04 AM" src="https://github.com/user-attachments/assets/39c2b516-ae1f-49b9-843e-b29162e7e4f5" />
-<img width="1467" alt="Screenshot 2025-04-06 at 9 18 50 AM" src="https://github.com/user-attachments/assets/a34ef4c7-e1af-4c2b-9869-6f970c09e5bf" />
-<img width="1470" alt="Screenshot 2025-04-06 at 9 18 36 AM" src="https://github.com/user-attachments/assets/653e1d2e-d18c-4a40-9394-047a12ea9674" />
+  <img width="1470" alt="Screenshot 2025-04-06 at 9 18 36 AM" src="https://github.com/user-attachments/assets/653e1d2e-d18c-4a40-9394-047a12ea9674" />
+  <img width="1467" alt="Screenshot 2025-04-06 at 9 18 50 AM" src="https://github.com/user-attachments/assets/a34ef4c7-e1af-4c2b-9869-6f970c09e5bf" />
+  <img width="1470" alt="Screenshot 2025-04-06 at 9 19 10 AM" src="https://github.com/user-attachments/assets/ed2edff6-c953-47ec-b61e-23f8915d11ec" />
+  <img width="1470" alt="Screenshot 2025-04-06 at 9 19 32 AM" src="https://github.com/user-attachments/assets/323eaa70-bc01-4717-b0df-5752a53e39ce" />
+  <img width="1459" alt="Screenshot 2025-04-06 at 9 21 04 AM" src="https://github.com/user-attachments/assets/39c2b516-ae1f-49b9-843e-b29162e7e4f5" />
+
 </div>
 
 # 💻 Tech Stack
